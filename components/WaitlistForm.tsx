@@ -20,7 +20,7 @@ export function WaitlistForm() {
 
     if (!EMAIL_REGEX.test(trimmed)) {
       setStatus("error");
-      setErrorMessage("Please enter a valid email address.");
+      setErrorMessage("ENTER A VALID EMAIL.");
       return;
     }
 
@@ -29,27 +29,23 @@ export function WaitlistForm() {
 
     try {
       const result = await joinWaitlist({ email: trimmed });
-      if (result.alreadyJoined) {
-        setStatus("already");
-      } else {
-        setStatus("success");
-      }
+      setStatus(result.alreadyJoined ? "already" : "success");
     } catch (err) {
       setStatus("error");
       setErrorMessage(
-        err instanceof Error ? err.message : "Something went wrong. Try again."
+        err instanceof Error ? err.message.toUpperCase() : "SOMETHING BROKE. TRY AGAIN."
       );
     }
   }
 
   if (status === "success") {
     return (
-      <div className="fade-in w-full max-w-md text-center">
-        <p className="font-body text-base text-[color:var(--color-amber)] font-medium">
-          You&apos;re on the list.
+      <div className="fade-in border-2 border-[#DFE104] bg-[#DFE104] text-black p-6 md:p-10">
+        <p className="font-bold uppercase tracking-tighter text-3xl md:text-5xl leading-[0.9]">
+          YOU&apos;RE IN.
         </p>
-        <p className="font-body text-sm text-[color:var(--color-ink-muted)] mt-1">
-          We&apos;ll be in touch soon.
+        <p className="mt-3 uppercase tracking-widest text-xs md:text-sm">
+          WE&apos;LL BE IN TOUCH WHEN EARLY ACCESS OPENS.
         </p>
       </div>
     );
@@ -57,12 +53,12 @@ export function WaitlistForm() {
 
   if (status === "already") {
     return (
-      <div className="fade-in w-full max-w-md text-center">
-        <p className="font-body text-base text-[color:var(--color-ink)] font-medium">
-          You&apos;re already on the list.
+      <div className="fade-in border-2 border-[#3F3F46] p-6 md:p-10">
+        <p className="font-bold uppercase tracking-tighter text-3xl md:text-5xl leading-[0.9]">
+          ALREADY ON THE LIST.
         </p>
-        <p className="font-body text-sm text-[color:var(--color-ink-muted)] mt-1">
-          We&apos;ll reach out when early access opens.
+        <p className="mt-3 uppercase tracking-widest text-xs md:text-sm text-[#A1A1AA]">
+          SIT TIGHT — EARLY ACCESS IS COMING.
         </p>
       </div>
     );
@@ -71,36 +67,39 @@ export function WaitlistForm() {
   const isLoading = status === "loading";
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-md" noValidate>
-      <div
-        className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-0 sm:bg-white sm:border sm:border-[color:var(--color-border)] sm:rounded-full sm:p-1.5 sm:shadow-[0_1px_2px_rgba(26,23,20,0.04)] sm:transition-all sm:focus-within:border-[color:var(--color-amber)] sm:focus-within:shadow-[0_0_0_4px_rgba(232,153,60,0.12)]"
-      >
-        <input
-          type="email"
-          autoComplete="email"
-          inputMode="email"
-          placeholder="your@email.com"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            if (status === "error") setStatus("idle");
-          }}
-          disabled={isLoading}
-          aria-label="Email address"
-          className="w-full bg-white border border-[color:var(--color-border)] rounded-xl px-4 py-3 font-body text-[15px] text-[color:var(--color-ink)] placeholder:text-[color:var(--color-ink-muted)] outline-none transition-colors focus:border-[color:var(--color-amber)] disabled:opacity-60 sm:border-0 sm:bg-transparent sm:rounded-full sm:py-2 sm:pl-4 sm:flex-1 sm:focus:border-transparent"
-        />
+    <form onSubmit={handleSubmit} className="w-full" noValidate>
+      <div className="flex flex-col md:flex-row gap-4 md:gap-8 md:items-end">
+        <label className="flex-1 block">
+          <span className="block uppercase tracking-widest text-xs text-[#A1A1AA] mb-2">
+            EMAIL
+          </span>
+          <input
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            placeholder="YOUR@EMAIL.COM"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (status === "error") setStatus("idle");
+            }}
+            disabled={isLoading}
+            aria-label="Email address"
+            className="w-full bg-transparent border-0 border-b-2 border-[#3F3F46] px-0 py-4 md:py-6 font-bold uppercase tracking-tighter text-2xl md:text-4xl lg:text-5xl text-[#FAFAFA] placeholder:text-[#27272A] outline-none transition-colors focus:border-[#DFE104] disabled:opacity-50"
+          />
+        </label>
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full sm:w-auto shrink-0 bg-[color:var(--color-amber)] text-white font-body font-medium text-[14px] tracking-tight px-5 py-3 sm:py-2.5 rounded-xl sm:rounded-full transition-all duration-150 hover:brightness-[1.05] active:brightness-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+          className="shrink-0 bg-[#DFE104] text-black font-bold uppercase tracking-tighter text-lg md:text-xl px-8 md:px-12 py-4 md:py-6 transition-transform duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
         >
-          {isLoading ? "Joining…" : "Join Waitlist →"}
+          {isLoading ? "JOINING…" : "JOIN →"}
         </button>
       </div>
       {status === "error" && errorMessage && (
         <p
           role="alert"
-          className="font-body text-xs text-red-600 mt-2 text-center"
+          className="mt-4 uppercase tracking-widest text-xs md:text-sm text-[#DFE104] font-bold"
         >
           {errorMessage}
         </p>

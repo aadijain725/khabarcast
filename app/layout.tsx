@@ -1,31 +1,24 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, DM_Sans } from "next/font/google";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { ConvexClientProvider } from "./providers";
 
-const fraunces = Fraunces({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-fraunces",
-  weight: ["300", "400", "500"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-dm-sans",
-  weight: ["400", "500", "600"],
+  variable: "--font-space-grotesk",
+  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "KhabarCast — AI audio briefings for your reading list",
+  title: "KHABARCAST — YOUR READING LIST, SPOKEN.",
   description:
-    "Convert your daily newsletters and articles into podcast-style audio briefings. Listen on your commute, at the gym, or anywhere your eyes are busy.",
+    "Newsletters and articles turned into podcast-style audio briefings. Listen anywhere your eyes are busy.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#E8993C",
+  themeColor: "#09090B",
 };
 
 export default function RootLayout({
@@ -34,10 +27,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${dmSans.variable}`}>
-      <body>
-        <ConvexClientProvider>{children}</ConvexClientProvider>
-      </body>
-    </html>
+    <ConvexAuthNextjsServerProvider>
+      <html lang="en" className={spaceGrotesk.variable}>
+        <body>
+          {/* Noise texture overlay — print-poster grain */}
+          <svg
+            className="noise"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <title>Noise texture</title>
+            <filter id="noise">
+              <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch" />
+              <feColorMatrix type="saturate" values="0" />
+            </filter>
+            <rect width="100%" height="100%" filter="url(#noise)" />
+          </svg>
+          <ConvexClientProvider>{children}</ConvexClientProvider>
+        </body>
+      </html>
+    </ConvexAuthNextjsServerProvider>
   );
 }
