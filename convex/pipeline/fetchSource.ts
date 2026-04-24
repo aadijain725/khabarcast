@@ -1,6 +1,5 @@
 "use node";
 
-import Parser from "rss-parser";
 import { v } from "convex/values";
 import { action, internalAction, ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
@@ -44,38 +43,101 @@ function cleanArticle(html: string): string {
   return decodeEntities(html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ")).trim();
 }
 
+async function fetchRaw(url: string): Promise<string> {
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "KhabarcastBot/1.0 (+https://khabarcast)",
+      Accept:
+        "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5",
+    },
+  });
+  if (!res.ok) throw new Error(`fetch ${url} → ${res.status}`);
+  return await res.text();
+}
+
+// Lightweight RSS/Atom item extractor — skips XML parsing entirely because
+// real-world feeds routinely ship invalid XML (unclosed <img>, stray `>`
+// characters in CDATA, HTML namespace mismatches) that strict sax rejects.
+// We care about exactly three fields of one item, which regex handles fine.
+
+function extractTagContent(body: string, tagName: string): string | null {
+  // Match `<tag ...attrs...>...</tag>` non-greedy across newlines. Use `\b`
+  // to avoid matching `<tag:foo>` when looking for just `<tag>`.
+  const escaped = tagName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(
+    `<${escaped}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${escaped}>`,
+    "i",
+  );
+  const m = body.match(re);
+  if (!m) return null;
+  let content = m[1];
+  const cdata = content.match(/<!\[CDATA\[([\s\S]*?)\]\]>/);
+  if (cdata) content = cdata[1];
+  return content.trim();
+}
+
+type ExtractedItem = { title: string; link: string; html: string };
+
+function extractFirstItem(
+  xml: string,
+  itemIndex: number,
+): ExtractedItem | null {
+  // RSS items use `<item>...</item>`; Atom entries use `<entry>...</entry>`.
+  const ITEM_RE = /<(item|entry)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  const items: string[] = [];
+  let match;
+  while ((match = ITEM_RE.exec(xml)) !== null) items.push(match[2]);
+  const body = items[itemIndex];
+  if (!body) return null;
+
+  const title = extractTagContent(body, "title") ?? "";
+  // Atom feeds link is often <link href="..."/>; try both forms.
+  let link = extractTagContent(body, "link") ?? "";
+  if (!link) {
+    const hrefMatch = body.match(/<link\b[^>]*\bhref=["']([^"']+)["']/i);
+    if (hrefMatch) link = hrefMatch[1];
+  }
+  // Prefer content:encoded (full html body); fall back to content → summary
+  // → description in order of richness.
+  const html =
+    extractTagContent(body, "content:encoded") ??
+    extractTagContent(body, "content") ??
+    extractTagContent(body, "summary") ??
+    extractTagContent(body, "description") ??
+    "";
+
+  return { title: decodeEntities(title), link: decodeEntities(link), html };
+}
+
 export async function doFetch(
   ctx: ActionCtx,
   params: { feedUrl: string; itemIndex?: number; userTokenId: string },
 ): Promise<{ sourceId: Id<"sources">; wordCount: number; title: string }> {
-  const parser: Parser = new Parser();
-  const feed = await parser.parseURL(params.feedUrl);
+  const raw = await fetchRaw(params.feedUrl);
   const idx = params.itemIndex ?? 0;
-  const item = feed.items[idx];
+  const item = extractFirstItem(raw, idx);
   if (!item) throw new Error(`feed has no item at index ${idx}`);
 
-  const html =
-    ((item as unknown as Record<string, string>)["content:encoded"] ||
-      item.content ||
-      "") as string;
-  const rawText = cleanArticle(html);
+  const rawText = cleanArticle(item.html);
   const wordCount = rawText.split(/\s+/).filter(Boolean).length;
 
   if (wordCount < MIN_WORDS) {
-    throw new Error(`article too thin: ${wordCount} words (min ${MIN_WORDS})`);
+    throw new Error(
+      `article too thin: ${wordCount} words (min ${MIN_WORDS}). title="${item.title.slice(0, 80)}"`,
+    );
   }
 
   const sourceId: Id<"sources"> = await ctx.runMutation(
     internal.sources.createInternal,
     {
       userTokenId: params.userTokenId,
-      title: item.title ?? "untitled",
+      title: item.title || "untitled",
       rawText,
-      url: item.link,
+      url: item.link || params.feedUrl,
     },
   );
 
-  return { sourceId, wordCount, title: item.title ?? "untitled" };
+  return { sourceId, wordCount, title: item.title || "untitled" };
 }
 
 export const run = action({
