@@ -15,6 +15,24 @@ export const get = query({
   },
 });
 
+export const getWithAudioUrl = query({
+  args: { episodeId: v.id("episodes") },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<(Doc<"episodes"> & { audioUrl: string | null }) | null> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    const row = await ctx.db.get(args.episodeId);
+    if (!row) return null;
+    if (row.userTokenId !== identity.tokenIdentifier) return null;
+    const audioUrl = row.audioFileId
+      ? await ctx.storage.getUrl(row.audioFileId)
+      : null;
+    return { ...row, audioUrl };
+  },
+});
+
 export const listMine = query({
   args: {},
   handler: async (ctx): Promise<Array<Doc<"episodes">>> => {

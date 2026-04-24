@@ -67,15 +67,19 @@ partial delivery landed with poc 1 merge. remaining items listed below.
 
 ## phase 2 — ui (3 screens)
 
-- [ ] `app/app/page.tsx` — generate screen (move `/dashboard` content here)
-- [ ] `components/HostCard.tsx` — kalam + anchor preset
-- [ ] `components/SourceInput.tsx` — url/paste tabs
-- [ ] `app/app/episodes/[id]/page.tsx` — player + transcript
-- [ ] `components/PodcastPlayer.tsx` — native `<audio>` + custom controls
-- [ ] `components/TranscriptTurn.tsx` — turn + flag button
-- [ ] `app/app/history/page.tsx` — episode list + flagged segments
-- [ ] update `components/NavAuthButton.tsx` target to `/app`
-- [ ] delete or redirect old `/dashboard` route
+- [x] `app/app/layout.tsx` — shared nav + footer for /app routes (wordmark, generate/history links, sign-out)
+- [x] `app/app/page.tsx` — generate screen (hero headline + SourceInput + HostCardStack + history link)
+- [x] `components/HostCard.tsx` — KALAM + ANCHOR preset cards, corner brackets
+- [x] `components/SourceInput.tsx` — URL input + orchestrator action call + elapsed-time phase estimator (fetch → dialogue → tts phase labels based on smoke medians)
+- [x] `app/app/episodes/[id]/page.tsx` — player + transcript by topic/subtopic + flag bar per topic
+- [x] `components/PodcastPlayer.tsx` — hidden native `<audio>` + custom play/pause + seek slider + time formatter
+- [x] `components/TranscriptTurn.tsx` — turn (role-aligned) + `TopicFlagBar` (good/bad/too-long/off-topic)
+- [x] `app/app/history/page.tsx` — list of my episodes with audio status + duration + link to detail
+- [x] `components/NavAuthButton.tsx` target: `/dashboard` → `/app`, label "DASHBOARD" → "OPEN APP"
+- [x] `/dashboard` route: replaced with server `redirect("/app")` (auth gate kept so unauth'd users land on login first)
+- [x] `proxy.ts`: protected routes updated to `/app`, `/app/(.*)`, `/dashboard`; authed `/login` redirects to `/app`
+- [x] backend: `episodes.getWithAudioUrl` query joins episode doc + signed `ctx.storage.getUrl` output
+- [x] route smoke: `/` + `/login` → 200, `/app` + `/app/history` + `/app/episodes/<id>` + `/dashboard` → 307 → `/login` (unauth'd path). Authed flow NOT interactively verified — needs browser login.
 
 ## phase 3 — tightening for l2 credibility
 
