@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# poc 4 — keep locked smoke samples, ignore preview + sweep variants
+poc/audio_samples/*.mp3
+!poc/audio_samples/smoke_*.mp3
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -27,12 +27,12 @@ prior phase (auth: google oauth + magic link, landing, waitlist) — **done**. s
 - [x] **decision: fold into poc 1** — logged in `poc/03-topic-selector-decision.md` with reversal trigger
 
 ### poc 4 — tts (elevenlabs)
-- [ ] sign up elevenlabs free tier
-- [ ] pick 2 voice ids (kalam warm/reflective, anchor sharp/urgent)
-- [ ] synthesize 3 sample turns via api or playground. save mp3s to `poc/audio_samples/`
-- [ ] a/b listen: voices distinguishable in 2 sec?
-- [ ] tune stability/similarity/style params per voice
-- [ ] lock voice ids + param presets in `poc/04-voice-config.md`
+- [x] sign up elevenlabs free tier + create api key `khabarcast-dev` (scopes: text_to_speech + voices read)
+- [x] pick 2 voice ids — kalam: `oBcjxOGlStndvN2pZJ6V` (user clone), anchor: `8WqHCYyrnUqoK70Px5EJ` (Nitin shared voice, added 2026-04-25)
+- [x] synthesize 3 sample turns via `poc/04-tts-smoke.ts`. mp3s in `poc/audio_samples/` (`smoke_1/2/3*.mp3`)
+- [x] a/b listen: distinguishable — user picked kalam-B (turbo_v2_5) over multilingual_v2/v3, and anchor-C (eleven_v3) over multilingual_v2/turbo-pushed
+- [x] tune per-voice params: kalam `{stability:0.55, sim:0.80, style:0.20}` on turbo_v2_5; anchor `{stability:0.35, sim:0.75, style:0.55}` on eleven_v3
+- [x] lock voice ids + param presets in `poc/04-voice-config.md` (version `v1-2026-04-25`)
 
 ### poc 5 — end-to-end smoke (optional, recommended)
 - [ ] manually chain poc 2 → poc 3 → poc 1 → poc 4 with one article
@@ -42,7 +42,7 @@ prior phase (auth: google oauth + magic link, landing, waitlist) — **done**. s
 ### phase 0 gate
 - [x] poc 1 passed
 - [x] poc 2 passed
-- [ ] poc 4 passed
+- [x] poc 4 passed (2026-04-25, voice config locked)
 - [x] poc 3 decision logged — **fold into poc 1**
 
 ## phase 1 — schema + pipeline (convex, backend-first)
