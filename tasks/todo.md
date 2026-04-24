@@ -35,15 +35,16 @@ prior phase (auth: google oauth + magic link, landing, waitlist) — **done**. s
 - [x] lock voice ids + param presets in `poc/04-voice-config.md` (version `v1-2026-04-25`)
 
 ### poc 5 — end-to-end smoke (optional, recommended)
-- [ ] manually chain poc 2 → poc 3 → poc 1 → poc 4 with one article
-- [ ] record 30-sec audio clip
-- [ ] note total human effort + api cost
+- [x] script chains poc 2 → poc 1 → poc 4 (poc 3 folded) in `poc/05-e2e-smoke.ts`
+- [x] 30-sec clip requirement exceeded: 360.7s (6 min) audio on noahpinion feed
+- [x] effort + cost logged in `poc/05-run-log.md` — 102s wall, ~$0.20-0.30/episode
 
 ### phase 0 gate
 - [x] poc 1 passed
 - [x] poc 2 passed
 - [x] poc 4 passed (2026-04-25, voice config locked)
 - [x] poc 3 decision logged — **fold into poc 1**
+- [x] poc 5 passed (2026-04-25, full e2e with audio artifact) — **gate cleared, phase 1 unblocked**
 
 ## phase 1 — schema + pipeline (convex, backend-first)
 
