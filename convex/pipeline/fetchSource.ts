@@ -82,8 +82,10 @@ function extractFirstItem(
   xml: string,
   itemIndex: number,
 ): ExtractedItem | null {
-  // RSS items use `<item>...</item>`; Atom entries use `<entry>...</entry>`.
-  const ITEM_RE = /<(item|entry)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  // RSS 2.0: `<item>`, Atom: `<entry>`. Namespace prefix tolerated
+  // (`<atom:entry>`), though uncommon in valid feeds.
+  const ITEM_RE =
+    /<(?:[a-zA-Z][\w-]*:)?(item|entry)\b[^>]*>([\s\S]*?)<\/(?:[a-zA-Z][\w-]*:)?\1>/gi;
   const items: string[] = [];
   let match;
   while ((match = ITEM_RE.exec(xml)) !== null) items.push(match[2]);
@@ -109,6 +111,21 @@ function extractFirstItem(
   return { title: decodeEntities(title), link: decodeEntities(link), html };
 }
 
+// When no `<item>` or `<entry>` is found, this tells the user WHY in one line.
+function diagnoseNoItems(raw: string): string {
+  const head = raw.trimStart().slice(0, 120).replace(/\s+/g, " ");
+  if (/^<!doctype html|^<html\b/i.test(raw.trimStart())) {
+    return `URL returned HTML, not an RSS/Atom feed. Preview: ${head}`;
+  }
+  if (/^\s*\{/.test(raw)) {
+    return `URL returned JSON (JSON Feed not supported). Preview: ${head}`;
+  }
+  if (!/<(item|entry)\b/i.test(raw)) {
+    return `No <item> or <entry> elements in response. Preview: ${head}`;
+  }
+  return `Could not extract feed items. Preview: ${head}`;
+}
+
 export async function doFetch(
   ctx: ActionCtx,
   params: { feedUrl: string; itemIndex?: number; userTokenId: string },
@@ -116,7 +133,11 @@ export async function doFetch(
   const raw = await fetchRaw(params.feedUrl);
   const idx = params.itemIndex ?? 0;
   const item = extractFirstItem(raw, idx);
-  if (!item) throw new Error(`feed has no item at index ${idx}`);
+  if (!item) {
+    throw new Error(
+      `No feed item at index ${idx}. ${diagnoseNoItems(raw)}`,
+    );
+  }
 
   const rawText = cleanArticle(item.html);
   const wordCount = rawText.split(/\s+/).filter(Boolean).length;
