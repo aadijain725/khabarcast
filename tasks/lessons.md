@@ -45,6 +45,21 @@
 **Do**: factor the fn into (1) a public wrapper that does the auth check + (2) an internal variant that takes `userTokenId` as an arg. Call the internal via `npx convex run 'path/file:internalName' '{"userTokenId":"smoke","...":...}'`. The internal surface doubles as the orchestrator's API later, so it's not throwaway scaffolding. Alternative: `npx convex run --identity '{...}'`, but the internal-variant pattern is reusable.
 **Why**: no cookies/JWT in `npx convex run` by default. Building internal variants early makes CLI smoke-testing possible AND gives the future cron/orchestrator a clean callsite.
 
+### 2026-04-25 — ElevenLabs: one model rarely fits two voices in the same show
+**Trigger**: picking model + params for 2+ voices in a dialogue
+**Do**: a/b each voice against ≥3 models independently (`eleven_turbo_v2_5`, `eleven_v3`, `eleven_multilingual_v2`). mixing models across voices is safe — turns render independently and concatenate; listener hears two speakers anyway. don't force a single model for "consistency" unless you've confirmed both voices survive it.
+**Why**: `eleven_multilingual_v2` neutralized kalam's indian accent (cloned voice) but gave anchor good intonation. `eleven_turbo_v2_5` preserved kalam's accent + pronunciation but flattened anchor. final lock needed per-voice models — kalam on turbo_v2_5, anchor on v3. mixed-model worry was unfounded.
+
+### 2026-04-25 — ElevenLabs shared voices must be in your library before TTS calls work
+**Trigger**: user passes a voice_id from `/v1/shared-voices` (category `professional` or any from the voice library, not `premade`)
+**Do**: first check with `GET /v2/voices?voice_ids=<id>` — if 0 matches, either (a) add via UI at `https://elevenlabs.io/app/voice-library?voiceId=<id>` → "Add to Library", or (b) call `POST /v1/voices/add/{public_owner_id}/{voice_id}` (requires `voices: write` scope, not included in the default text-to-speech-only key).
+**Why**: hit 401 missing_permissions on the add endpoint because the dev key only had `text_to_speech` + `voices: read`. UI add is 10 sec and avoids re-granting scopes. `premade` voices (the default 21) don't need adding.
+
+### 2026-04-25 — `source .env.local` doesn't export to node child processes
+**Trigger**: running `npx tsx script.ts` or any node command that reads `process.env.X` after sourcing a `.env.local`
+**Do**: use `set -a && source .env.local && set +a` — the `set -a` flag auto-exports all variables being defined. avoid `export $(grep -v '^#' .env.local | xargs)` — breaks on comments containing colons (e.g. `# team: aadijain`).
+**Why**: curl commands in the same shell work because `$VAR` expands shell-side before the child runs. node reads `process.env` which is populated from the inherited environment — sourced-but-not-exported vars aren't there.
+
 ### 2026-04-24 — Convex CLI `run` args are positional JSON, not a flag
 **Trigger**: invoking a convex fn with structured args from the CLI
 **Do**: `npx convex run 'sources:createInternal' '{"userTokenId":"x","title":"t","rawText":"..."}'`. When the JSON contains apostrophes or newlines, write it to a file and `cat` it into the argument: `npx convex run 'fn' "$(cat /tmp/args.json)"`. There is no `--args-file` flag.
