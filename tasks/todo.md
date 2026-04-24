@@ -126,3 +126,29 @@ partial delivery landed with poc 1 merge. remaining items listed below.
 - set `ANTHROPIC_API_KEY` on prod deployment when ready to ship.
 - poc 4 (tts) + poc 3 (topic selector decision) to clear phase 0 gate.
 - delete/archive the `khabarcast-poc1-script` worktree once this merge is confirmed green.
+
+### phase 1 + phase 2 landing (2026-04-25)
+
+**what changed**
+- **phase 1 (backend pipeline)**: `convex/pipeline/{fetchSource,renderAudio,orchestrate}.ts` + `voices.ts` (shared config) + `topicFlags.ts`. Episodes gained audio lifecycle fields (`audioStatus`, `audioFileId`, `audioDurationSec`, `audioError`, `voiceConfigVersion`).
+- **phase 2 (ui)**: three signed-in screens under `/app` (generate, episode detail, history) + player, transcript, flag components. `/dashboard` → server-redirect to `/app`. Proxy gating updated.
+- **fetchSource pivot**: started with `rss-parser`, hit "Unexpected close tag" on astralcodexten and a user feed (sax chokes on inline HTML). Dropped rss-parser entirely, replaced with a ~30-line regex extractor (namespace-tolerant, CDATA-aware, Atom + RSS uniform). Verified across 18 real-world feeds — item extraction has a 100% hit rate on every feed tested; only failures are the word-count gate and 404s.
+- **renderAudio error path proven**: first orchestrator run on phase 1 crashed mid-TTS with ElevenLabs 429 concurrent limit. Error handling set `audioStatus=error`, then `renderAudio:runInternal` re-invoked on the same episode (skipping anthropic re-spend) transitioned `error → rendering → ready`. This is the orchestrator resumability story in practice.
+
+**decisions**
+- ElevenLabs `TTS_CONCURRENCY=1` (starter tier allows 3 concurrent but the counter doesn't drain instantly; backoff retry 1s/2s/4s for 429+5xx makes it reliable).
+- Helper-function composition (`doFetch`, `doGenerate`, `doRender`) over `ctx.runAction` for orchestrator — per convex same-runtime guideline + enables individual-step smoke testing.
+- Phase 2 UI follows the art deco system from main's `7268544` rebrand (gold `#D4AF37`, Marcellus serif, `deco-*` helpers), NOT the stale `design.md` brutalist spec. `design.md` rewrite is a separate task.
+- Diagnostic errors on fetchSource no-item: tells user explicitly when they pasted an HTML page, JSON, or an empty feed. Most common error in phase 2 smoke was exactly this.
+
+**surprises**
+- `npx convex codegen` doesn't reliably register new module files in nested dirs (`convex/pipeline/*`) — had to use `npx convex dev --once` to force deploy. Got a "Could not find function" error even though codegen said it uploaded.
+- rss-parser's lenient xml2js mode (`{ strict: false, normalizeTags: true }`) also failed on the same astralcodexten feed — lenient sax uppercases tags, which breaks rss-parser's schema-based extraction for namespaced fields like `content:encoded`. The cleanest fix was deleting the dep.
+- `gh pr merge --delete-branch` fails the LOCAL sync step when `main` is checked out in another worktree, but the server-side merge still succeeds — we delete remote branches manually afterwards with `git push origin --delete`.
+
+**next**
+- rotate `ELEVENLABS_API_KEY` + `ANTHROPIC_API_KEY` (both chat-exposed multiple times).
+- set `ELEVENLABS_API_KEY` on prod convex (`npx convex env set --prod`) before `npx convex deploy`.
+- phase 3 priorities: live generation status (replace SourceInput's elapsed-time phase estimator with a `generationRuns` subscription), retry button on failed episodes, ffmpeg-static mp3 concat cleanup.
+- update `design.md` to describe the art deco system actually in use (current doc is stale brutalist).
+- optional: browser-test the full authed flow end-to-end. I verified routes + unauth redirects; the authed happy path was user-verified during phase 2 smoke.
