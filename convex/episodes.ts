@@ -1,0 +1,61 @@
+import { v } from "convex/values";
+import { internalMutation, internalQuery, query } from "./_generated/server";
+import { Doc, Id } from "./_generated/dataModel";
+import { dialogueValidator } from "./schema";
+
+export const get = query({
+  args: { episodeId: v.id("episodes") },
+  handler: async (ctx, args): Promise<Doc<"episodes"> | null> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    const row = await ctx.db.get(args.episodeId);
+    if (!row) return null;
+    if (row.userTokenId !== identity.tokenIdentifier) return null;
+    return row;
+  },
+});
+
+export const listMine = query({
+  args: {},
+  handler: async (ctx): Promise<Array<Doc<"episodes">>> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    return await ctx.db
+      .query("episodes")
+      .withIndex("by_userToken", (q) =>
+        q.eq("userTokenId", identity.tokenIdentifier),
+      )
+      .order("desc")
+      .take(50);
+  },
+});
+
+export const getInternal = internalQuery({
+  args: { episodeId: v.id("episodes") },
+  handler: async (ctx, args): Promise<Doc<"episodes"> | null> => {
+    return await ctx.db.get(args.episodeId);
+  },
+});
+
+export const insertFromRunInternal = internalMutation({
+  args: {
+    userTokenId: v.string(),
+    sourceId: v.id("sources"),
+    runId: v.id("generationRuns"),
+    episodeTitle: v.string(),
+    sourceTitle: v.string(),
+    dialogue: dialogueValidator,
+    promptVersion: v.string(),
+  },
+  handler: async (ctx, args): Promise<Id<"episodes">> => {
+    return await ctx.db.insert("episodes", {
+      userTokenId: args.userTokenId,
+      sourceId: args.sourceId,
+      runId: args.runId,
+      episodeTitle: args.episodeTitle,
+      sourceTitle: args.sourceTitle,
+      dialogue: args.dialogue,
+      promptVersion: args.promptVersion,
+    });
+  },
+});

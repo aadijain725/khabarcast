@@ -1,112 +1,63 @@
-# Auth: Google + email/password login
+# poc 1 follow-through — script generation pipeline
 
-## Decisions (confirm before implementing)
+worktree: `khabarcast-poc1-script` (branch `feat/poc1-script-generation`).
 
-- **Provider**: Convex Auth (native, no third party). Matches existing Convex backend.
-- **Methods**: Google OAuth + Magic link via Resend. User chose nicer UX over fewer-vendors. No passwords anywhere.
-- **Scope now**: Local dev deployment. Production env config deferred — do separately after local login works end-to-end.
-- **User table**: None added. Convex Auth owns its own `users` table internally. Don't build a parallel one.
-- **Routes**:
-  - `/` — existing landing. Nav shows `LOG IN →` if signed-out, `APP →` if signed-in.
-  - `/login` — new page. Google button + email/password form. Mode toggle sign-in ↔ sign-up.
-  - `/app` — gated dashboard placeholder. Shows signed-in email, `SIGN OUT` button.
-- **Post-login redirect**: `/app`.
-- **Design**: strict adherence to `design.md`. Uppercase, clamp hero, underline inputs, yellow block button, black/zinc/accent palette.
+## scope
 
-## Human steps needed (blocks me)
+lock poc 1 prompt. build convex action turning article text → two-host dialogue json. no rss, no tts, no ui. those = other pocs.
 
-1. **Resend account** at https://resend.com
-   - Sign up (free tier, ~3000 emails/mo).
-   - Get API key.
-   - Verify sender: for dev, use `onboarding@resend.dev` (Resend's test sender — only sends to *your own verified email*, which is fine for testing).
-   - Returns: `RESEND_API_KEY`.
-2. **Google OAuth client** at https://console.cloud.google.com/apis/credentials
-   - Create new OAuth 2.0 Client (Web application).
-   - Authorized redirect URI: `https://<your-convex-deployment>.convex.site/api/auth/callback/google` — exact URL I'll surface after running `npx @convex-dev/auth`.
-   - Returns: Client ID + Client Secret.
-3. **Set envs on Convex deployment** (I'll give exact `npx convex env set` commands):
-   - `AUTH_GOOGLE_ID`
-   - `AUTH_GOOGLE_SECRET`
-   - `AUTH_RESEND_KEY`
-   - `SITE_URL` (`http://localhost:3000` for dev)
-4. `npx @convex-dev/auth` may prompt interactively — if so, I'll stop and ask.
+## tasks
 
-## Steps
+- [x] lock prompt verbatim → `poc/01-final-prompt.md`
+- [x] schema: add `sources`, `episodes`, `generationRuns` tables + indexes in `convex/schema.ts`
+- [x] `npm i @anthropic-ai/sdk` (used `--cache /tmp/npm-cache-poc1-script` per lessons.md)
+- [x] `convex/sources.ts` — public mutation `create` (auth'd, takes title/text/url), returns sourceId
+- [x] `convex/episodes.ts` — public queries `get` + `listMine`, internal mutation `insertFromRunInternal`
+- [x] `convex/generationRuns.ts` — internal mutations `createInternal`, `markOkInternal`, `markErrorInternal`
+- [x] `convex/pipeline/generateScript.ts` — action (`"use node";`). auth required. calls anthropic w/ locked prompt. parses json (strips fences defensively). validates shape before insert. writes episode + updates run.
+- [x] `npx convex codegen` — schema + fns pushed to dev deployment, clean
+- [x] `npx tsc --noEmit` green
+- [x] `npx eslint` green on new files
+- [x] `ANTHROPIC_API_KEY` set on dev deployment `agreeable-oriole-671`
+- [x] smoke: 1 source (semiconductor article, ~550 words) → generator → episode. 5/5 on rubric. run `k979c2hym5dg4pxqd1djjjg8sn85f243` marked `ok` in 31.3s, episode `k57badgx0m8rmrtsb6etcchx7n85eemd`
+- [ ] **user action**: rotate `ANTHROPIC_API_KEY` (was pasted in chat)
+- [ ] **user action**: set key on prod deployment separately if ready to deploy: `npx convex env set --prod ANTHROPIC_API_KEY <new>`
+- [ ] refactor note: added `sources.createInternal` + `pipeline/generateScript.runInternal` + `episodes.getInternal` to enable CLI smoke. these are the same surface the future orchestrator will use — kept, not cleaned up.
 
-- [x] **1. Install deps** — used `--cache /tmp/npm-cache-auth` to bypass npm cache perms bug
-- [x] **2. Run initializer** — non-interactive. Created `auth.config.ts`, `auth.ts`, `http.ts`. Set `SITE_URL`, `JWT_PRIVATE_KEY`, `JWKS` envs on dev deployment.
-- [x] **3. Verify generated files** present
-- [x] **4. Schema** — added `authTables` to `convex/schema.ts`
-- [x] **5. Configure providers** — Google + Resend added to `convex/auth.ts`
-- [x] **6. Client provider swap** — `app/providers.tsx` → `ConvexAuthNextjsProvider`; `app/layout.tsx` wrapped in `ConvexAuthNextjsServerProvider`
-- [x] **7. Proxy** (Next 16 renamed `middleware.ts` → `proxy.ts`) — `proxy.ts` at root gates `/dashboard`, redirects authed users away from `/login`
-- [x] **8. Login page** — `app/login/page.tsx` + `components/LoginForm.tsx`
-- [x] **9. Dashboard page** — `app/dashboard/page.tsx` + `components/DashboardIdentity.tsx` + `components/SignOutButton.tsx` (route chosen `/dashboard` not `/app` for clarity vs the Next `app/` dir)
-- [x] **10. Nav on landing** — `components/NavAuthButton.tsx` using `useConvexAuth` hook
-- [ ] **11. Google Cloud setup** — BLOCKED on user
-- [ ] **12. Envs** — BLOCKED on user (set after Google + Resend creds obtained)
-- [ ] **13. Push + verify** — schema pushed ✔; sign-in flow untested pending creds
-- [x] **14. Typecheck + lint** — 0 TS errors, 0 ESLint errors (pre-existing warnings in generated files unchanged)
-- [ ] **15. Review section** — after verification
+## data model
 
-## Verification checklist (per CLAUDE.md "verify before done")
+```
+sources:        { userTokenId, title, rawText, url?, wordCount } + by_userToken
+episodes:       { userTokenId, sourceId, runId, episodeTitle, sourceTitle, dialogueJson, promptVersion }
+                 + by_userToken, by_source
+generationRuns: { userTokenId, sourceId, episodeId?, status("pending"|"ok"|"error"),
+                  model, promptVersion, errorMessage?, startedAt, finishedAt? }
+                 + by_userToken, by_source
+```
 
-- [ ] Google sign-in: click → Google consent → redirect to `/app` with identity
-- [ ] Magic link: enter email → email arrives → click link → redirect to `/app`
-- [ ] `/app` inaccessible while signed out (middleware redirects to `/login`)
-- [ ] Sign out: click → back to `/`, nav flips
-- [ ] `ctx.auth.getUserIdentity()` returns identity in a backend function (add a smoke query)
-- [ ] Types + lint green
-- [ ] Design audit: matches `design.md` (uppercase, sharp corners, underline inputs, yellow CTA, noise overlay still present)
+`dialogueJson` stored as full `v.object(...)` matching the schema from the locked prompt (topics → subtopics → turns). validates shape at write time.
 
-## Out of scope (do not expand into)
+## not in scope
 
-- Password auth, OTP codes (magic link only)
-- Custom email template branding (use Convex Auth default; rebrand later)
-- User profile management, avatars, username
-- Role-based access
-- Production Convex deployment envs (separate task after local verified)
+poc 2 (rss fetch), poc 3 (topic selector), poc 4 (tts), phase 2 (ui). orchestrator too — `generateScript` is callable directly from dashboard for now.
 
-## Review
+## review
 
-### What changed
+**what changed**
+- locked poc 1 megaprompt as `poc/01-final-prompt.md` + embedded verbatim in `convex/pipeline/generateScript.ts` with `PROMPT_VERSION = "v1-2026-04-24"`. bump version string whenever the prompt text is edited.
+- new tables: `sources`, `episodes`, `generationRuns`. `episodes.dialogue` is validated at insert time via a shared `dialogueValidator` exported from `schema.ts` (union literals on labels, speakers).
+- ownership model: `userTokenId` (from `identity.tokenIdentifier` per convex guidelines) stored on every row; queries filter by it.
+- action does: auth → load owned source → create run (pending) → call Anthropic `claude-sonnet-4-6` → strip fences → parse → shape-validate → insert episode → mark run ok. any throw marks run error with `errorMessage` (first 1000 chars).
 
-**Backend (Convex)**
-- `convex/schema.ts` — spread `authTables` into the schema (users, sessions, accounts, refresh tokens, verification codes, verifiers, rate limits).
-- `convex/auth.ts` — Google OAuth + Resend magic link providers wired through Convex Auth.
-- `convex/auth.config.ts`, `convex/http.ts` — generated by `npx @convex-dev/auth`.
-- `convex/users.ts` — new `me` query returning `{ email, name }` from `ctx.auth.getUserIdentity()`.
-- Deployment envs set: `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_RESEND_KEY`, `SITE_URL`, `JWT_PRIVATE_KEY`, `JWKS`.
+**decisions**
+- sourceId in, not raw text. keeps shape stable for phase 1 rss handoff later.
+- prompt text duplicated between md file + action source. not DRY but convex actions can't read repo files at runtime; keep sync via PROMPT_VERSION bump rule.
+- model `claude-sonnet-4-6` (latest sonnet). opus overkill for dialogue gen at this stage.
 
-**Frontend**
-- `app/providers.tsx` — `ConvexProvider` → `ConvexAuthNextjsProvider`.
-- `app/layout.tsx` — wrapped in `ConvexAuthNextjsServerProvider`.
-- `proxy.ts` (Next 16 — formerly `middleware.ts`) — gates `/dashboard`, bounces authed users off `/login`.
-- `app/login/page.tsx` + `components/LoginForm.tsx` — Google button + magic link form, brutalist design match.
-- `app/dashboard/page.tsx` + `components/DashboardIdentity.tsx` + `components/SignOutButton.tsx` — gated page with identity + sign-out.
-- `app/page.tsx` — nav CTA swapped for `<NavAuthButton />` (flips `LOG IN →` ↔ `DASHBOARD →`).
+**surprises**
+- `npx convex codegen` pushed to the dev deployment, not just local type generation. additive schema change, no risk, but main worktree's convex/ is now out-of-sync with the deployed schema. flag if user switches back.
+- worktree didn't inherit untracked `poc/` or `.env.local` from main — copied manually.
 
-**Deps added**: `@convex-dev/auth`, `@auth/core@0.37.0`, + their transitive (jose, oauth4webapi, etc).
-
-### What's verified
-
-- TypeScript: 0 errors
-- ESLint: 0 errors (pre-existing warnings in `convex/_generated/` unchanged)
-- `next build`: 4 routes compiled, proxy registered
-- Dev server: 200 on `/`, `/login`; `/dashboard` → 307 → `/login` (proxy gate works)
-
-### What's NOT verified (requires user action)
-
-- Google OAuth round-trip (needs browser + Google consent)
-- Magic link email delivery (Resend onboarding@resend.dev only delivers to Resend account owner's email — test with *that* address)
-- Sign-out round-trip
-- `ctx.auth.getUserIdentity()` returning real identity inside `api.users.me` (only verified in unauth state so far — returns null correctly)
-
-### Gotchas surfaced
-
-1. **Next 16 middleware rename**: file is `proxy.ts` at root, not `middleware.ts`. Functionality identical.
-2. **Route naming**: used `/dashboard` not `/app` to avoid optical confusion with Next's `app/` routes dir.
-3. **Resend free tier limit**: `onboarding@resend.dev` sender only delivers to the account owner's own verified email. For real users later: verify a custom domain in Resend.
-4. **npm cache perms bug**: `~/.npm/_cacache` had root-owned files. Worked around with `--cache /tmp/...` but permanent fix needs `sudo chown -R 501:20 ~/.npm` from the user.
-5. **Production deployment**: this session only configured the *dev* Convex deployment. Prod Convex + Vercel envs are a separate task.
-
+**next**
+- set `ANTHROPIC_API_KEY`, smoke end-to-end via dashboard.
+- if smoke passes: poc 2 (rss) or poc 4 (tts) next.

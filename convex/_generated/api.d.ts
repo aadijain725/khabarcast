@@ -9,7 +9,11 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as episodes from "../episodes.js";
+import type * as generationRuns from "../generationRuns.js";
 import type * as http from "../http.js";
+import type * as pipeline_generateScript from "../pipeline/generateScript.js";
+import type * as sources from "../sources.js";
 import type * as users from "../users.js";
 import type * as waitlist from "../waitlist.js";
 
@@ -21,7 +25,11 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  episodes: typeof episodes;
+  generationRuns: typeof generationRuns;
   http: typeof http;
+  "pipeline/generateScript": typeof pipeline_generateScript;
+  sources: typeof sources;
   users: typeof users;
   waitlist: typeof waitlist;
 }>;

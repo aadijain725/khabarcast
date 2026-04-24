@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.0",
     "@auth/core": "^0.37.0",
     "@convex-dev/auth": "^0.0.91",
     "convex": "^1.36.0",
