@@ -7,11 +7,10 @@ prior phase (auth: google oauth + magic link, landing, waitlist) — **done**. s
 ## phase 0 — pocs (claude chat, not code)
 
 ### poc 1 — two-host dialogue (brain)
-- [ ] pick 3 source articles (1 tech, 1 news/policy, 1 science). save full text to `poc/source_1.txt`, `poc/source_2.txt`, `poc/source_3.txt`
-- [ ] paste `poc/01-dialogue-megaprompt.md` into claude chat with source 1. save output to `poc/run_01_source_1.json`
-- [ ] repeat for source 2, source 3
-- [ ] apply pass/fail tests from plan (anchor push ≥ 1/topic, kalam synthesizes, coherence, valid json)
-- [ ] iterate prompt until 2 of 3 sources pass. lock final prompt at `poc/01-final-prompt.md`
+- [x] source article used: 550-word semiconductor mission piece (saved inline in poc1 smoke, not to `poc/source_N.txt` — smoke was CLI-run, not claude-chat-run)
+- [x] apply pass/fail tests: **5/5 pass** — schema valid, anchor pushes ≥ 1/topic, kalam synthesizes (not textbook), coherence across topics, valid json
+- [x] lock final prompt at `poc/01-final-prompt.md` (version `v1-2026-04-24`)
+- note: poc 1 was run programmatically (via the convex action + anthropic sonnet-4-6) rather than pasted into claude chat. the prompt the action uses = the prompt in the md file, verbatim.
 
 ### poc 2 — rss fetching
 - [x] collect 5 substack urls — astralcodexten, noahpinion, bariweiss, mattstoller, slowboring
@@ -40,23 +39,28 @@ prior phase (auth: google oauth + magic link, landing, waitlist) — **done**. s
 - [ ] note total human effort + api cost
 
 ### phase 0 gate
-- [ ] poc 1, 2, 4 passed. poc 3 decision logged. only then proceed to phase 1.
+- [x] poc 1 passed
+- [x] poc 2 passed
+- [ ] poc 4 passed
+- [ ] poc 3 decision logged
 
 ## phase 1 — schema + pipeline (convex, backend-first)
 
-- [ ] read `convex/_generated/ai/guidelines.md` (overrides training data)
+partial delivery landed with poc 1 merge. remaining items listed below.
+
+- [x] read `convex/_generated/ai/guidelines.md` (overrides training data)
 - [ ] read relevant docs in `node_modules/next/dist/docs/` (next 16 breaking changes)
-- [ ] update `convex/schema.ts`: sources, episodes, topicFlags, generationRuns + indexes
-- [ ] install deps: `@anthropic-ai/sdk`, `rss-parser`
-- [ ] set convex env: `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_KALAM`, `ELEVENLABS_VOICE_ANCHOR`
-- [ ] `convex/pipeline/fetchSource.ts` (action)
+- [x] `convex/schema.ts`: sources, episodes, generationRuns + indexes — **topicFlags still TODO**
+- [x] install deps: `@anthropic-ai/sdk` (poc 1), `rss-parser` (poc 2)
+- [x] convex env: `ANTHROPIC_API_KEY` (dev) — still TODO: `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_KALAM`, `ELEVENLABS_VOICE_ANCHOR`, prod keys
+- [ ] `convex/pipeline/fetchSource.ts` (action) — wrap poc 2 script as a convex action, write result to `sources` table
 - [ ] `convex/pipeline/selectTopics.ts` (action) — or skip per poc 3 decision
-- [ ] `convex/pipeline/generateScript.ts` (action) — locked poc 1 prompt
+- [x] `convex/pipeline/generateScript.ts` (action) — locked poc 1 prompt, smoke-verified
 - [ ] `convex/pipeline/renderAudio.ts` (action) — elevenlabs + convex file storage
 - [ ] `convex/pipeline/orchestrate.ts` (action) — hardcoded handoffs
-- [ ] `convex/episodes.ts` — generate/get/listMine
+- [x] `convex/episodes.ts` — `get` + `listMine` (public) + `getInternal` + `insertFromRunInternal`. note: no top-level `generate` mutation — generation is driven by `pipeline/generateScript:run` action instead.
 - [ ] `convex/topicFlags.ts` — create/listMine
-- [ ] local test: invoke `episodes.generate` via convex dashboard, full run completes
+- [x] local test: `pipeline/generateScript:runInternal` via `npx convex run` completes end-to-end
 
 ## phase 2 — ui (3 screens)
 
@@ -89,4 +93,29 @@ prior phase (auth: google oauth + magic link, landing, waitlist) — **done**. s
 
 ## review
 
-_fill per phase: what changed, what surprised, what to revisit._
+### poc 1 + poc 2 + partial phase 1 landing (2026-04-24)
+
+**what changed**
+- poc 2: `poc/02-fetch-rss.ts` — rss-parser, 5/5 substack feeds, text ≥ 500 words on each. follow-up: html entity decode before claude.
+- poc 1: prompt locked as `poc/01-final-prompt.md` (version `v1-2026-04-24`). same text lives verbatim inside `convex/pipeline/generateScript.ts`; bump `PROMPT_VERSION` when the text changes.
+- schema: `sources`, `episodes`, `generationRuns` tables + `dialogueValidator` exported from `schema.ts` (topic/subtopic/turn union literals enforced at insert).
+- ownership: `userTokenId` (= `identity.tokenIdentifier` per convex guidelines) stamped on every row; queries filter by it.
+- action flow: auth → load owned source → create run (pending) → anthropic `claude-sonnet-4-6` → strip fences → JSON.parse → shape-validate → insert episode → mark run ok. error path marks run error with first 1000 chars.
+- refactor: core flow extracted to `doGenerate(ctx, {sourceId, userTokenId})`; public `run` (auth-wrapped) and `runInternal` (no auth, trusted caller) both use it. `runInternal` + `sources.createInternal` + `episodes.getInternal` will be the orchestrator's surface later.
+
+**decisions**
+- sourceId in, not raw text — shape stable for the future rss→generate handoff.
+- prompt duplicated between md + ts. actions can't read repo files at runtime; sync enforced by version-bump discipline.
+- `claude-sonnet-4-6`. opus overkill at this stage.
+
+**surprises**
+- `npx convex codegen` pushed fns to the dev deployment (not just local type generation). additive schema, no risk, but flag if someone reverts convex/ on a branch.
+- worktree (`khabarcast-poc1-script`) didn't inherit untracked `poc/` or `.env.local` — copied manually.
+- npm cache perm bug (lessons.md) hit again; `--cache /tmp/...` workaround.
+- smoke duration: 31s wall, ~$0.05 per episode (sonnet 4.6, ~4k in + 2k out).
+
+**next**
+- rotate `ANTHROPIC_API_KEY` (was pasted in chat during poc 1 smoke).
+- set `ANTHROPIC_API_KEY` on prod deployment when ready to ship.
+- poc 4 (tts) + poc 3 (topic selector decision) to clear phase 0 gate.
+- delete/archive the `khabarcast-poc1-script` worktree once this merge is confirmed green.
