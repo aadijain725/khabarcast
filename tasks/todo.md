@@ -21,9 +21,10 @@ prior phase (auth: google oauth + magic link, landing, waitlist) — **done**. s
 - [ ] follow-up for pipeline phase: decode html entities (`&#8217;` etc.) before feeding to claude
 
 ### poc 3 — topic selector (decision fork)
-- [ ] topic picker prompt, run against 3 articles from poc 2
-- [ ] smoke test: do topics improve poc 1 output vs raw article dump?
-- [ ] log decision in `poc/03-topic-selector-decision.md` — keep separate step or fold into poc 1
+- [x] topic picker prompt locked at `poc/03-topic-selector-prompt.md` (v0.1-2026-04-25)
+- [x] run against 3 articles from poc 2 — `poc/topics_out/{astralcodexten,noahpinion,slowboring}.json`. 3/3 returned valid JSON, 3 topics each, sharp tensions
+- [x] ~~smoke test: poc 1 raw vs with-topics~~ skipped — decision was lean-leaning; tie would still = fold. documented as v1 follow-up experiment in decision doc.
+- [x] **decision: fold into poc 1** — logged in `poc/03-topic-selector-decision.md` with reversal trigger
 
 ### poc 4 — tts (elevenlabs)
 - [ ] sign up elevenlabs free tier
@@ -42,7 +43,7 @@ prior phase (auth: google oauth + magic link, landing, waitlist) — **done**. s
 - [x] poc 1 passed
 - [x] poc 2 passed
 - [ ] poc 4 passed
-- [ ] poc 3 decision logged
+- [x] poc 3 decision logged — **fold into poc 1**
 
 ## phase 1 — schema + pipeline (convex, backend-first)
 
@@ -54,7 +55,7 @@ partial delivery landed with poc 1 merge. remaining items listed below.
 - [x] install deps: `@anthropic-ai/sdk` (poc 1), `rss-parser` (poc 2)
 - [x] convex env: `ANTHROPIC_API_KEY` (dev) — still TODO: `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_KALAM`, `ELEVENLABS_VOICE_ANCHOR`, prod keys
 - [ ] `convex/pipeline/fetchSource.ts` (action) — wrap poc 2 script as a convex action, write result to `sources` table
-- [ ] `convex/pipeline/selectTopics.ts` (action) — or skip per poc 3 decision
+- [x] ~~`convex/pipeline/selectTopics.ts` (action)~~ — **skipped per poc 3 decision (fold into poc 1)**
 - [x] `convex/pipeline/generateScript.ts` (action) — locked poc 1 prompt, smoke-verified
 - [ ] `convex/pipeline/renderAudio.ts` (action) — elevenlabs + convex file storage
 - [ ] `convex/pipeline/orchestrate.ts` (action) — hardcoded handoffs

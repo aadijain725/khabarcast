@@ -1,0 +1,45 @@
+{
+  "feed": "https://noahpinion.substack.com/feed",
+  "article_title": "Is China's soft power really rising, or is America's just crumbling?",
+  "article_words": 3351,
+  "published_at": "2026-04-22T21:01:40.000Z",
+  "model": "claude-sonnet-4-6",
+  "prompt_version": "v0.1-2026-04-25",
+  "latency_ms": 14535,
+  "usage": {
+    "input_tokens": 5098,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 581,
+    "service_tier": "standard",
+    "inference_geo": "global"
+  },
+  "topics": {
+    "source_title": "Chinamaxxing and the Rise of Chinese Soft Power",
+    "word_count": 3050,
+    "topics": [
+      {
+        "title": "Chinamaxxing: Admiration or Escapism?",
+        "angle": "Whether the Chinamaxxing trend represents genuine growing interest in Chinese culture or is primarily a displaced expression of American domestic dissatisfaction with no real cultural exchange happening.",
+        "why_it_matters": "How we read this trend determines whether China is actually gaining soft power influence over Western youth, or whether American dysfunction is simply creating a projection screen that any foreign culture could fill.",
+        "tension": "Optimists see Chinamaxxing as an early, shallow phase of real cultural curiosity that could deepen over time, while skeptics argue it's Americaminning — a protest aesthetic with no actual engagement with Chinese art, music, or lived reality."
+      },
+      {
+        "title": "Censorship Stunting vs. Enabling Culture",
+        "angle": "Whether China's repressive censorship system permanently caps its cultural export potential, or whether new formats like microdramas are finding ways to flourish precisely because they slip through the censors.",
+        "why_it_matters": "If censorship can be routed around at scale, the standard prediction that authoritarian systems can't produce globally compelling culture may need revising — with real consequences for how the West thinks about soft power competition.",
+        "tension": "The conventional view holds that censorship kills the authentic, boundary-pushing creativity needed for global cultural appeal, but the microdrama explosion suggests volume and format innovation can outpace state control, at least temporarily."
+      },
+      {
+        "title": "Brain Drain vs. Tourist Optics",
+        "angle": "Whether the more consequential soft power story is not Gen Z TikTok aesthetics but China's success in luring back US-trained Chinese scientists and engineers — a talent competition the article argues America is losing.",
+        "why_it_matters": "If high-skilled returnees represent the real vector of China's rise rather than cultural trends, then American policymakers focused on restricting TikTok or countering propaganda are optimizing for the wrong threat.",
+        "tension": "Those who focus on cultural soft power treat the Chinamaxxing discourse as the meaningful battleground, while those focused on human capital argue the talent exodus of Chinese-born researchers is the concrete, measurable loss that actually shifts long-run technological and economic competition."
+      }
+    ]
+  }
+}
