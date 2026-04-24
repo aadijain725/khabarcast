@@ -6,11 +6,11 @@ import { useConvexAuth } from "convex/react";
 export function NavAuthButton() {
   const { isLoading, isAuthenticated } = useConvexAuth();
 
-  const href = isAuthenticated ? "/dashboard" : "/login";
+  const href = isAuthenticated ? "/app" : "/login";
   const label = isLoading
     ? "…"
     : isAuthenticated
-      ? "DASHBOARD"
+      ? "OPEN APP"
       : "ENTER";
 
   return (
