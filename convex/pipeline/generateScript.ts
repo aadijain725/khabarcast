@@ -146,7 +146,7 @@ function validateDialogue(raw: unknown): Dialogue {
 // Core flow — shared by public `run` and internal `runInternal`.
 // Callers are responsible for establishing `userTokenId` (auth for public,
 // trusted caller for internal).
-async function doGenerate(
+export async function doGenerate(
   ctx: ActionCtx,
   params: { sourceId: Id<"sources">; userTokenId: string },
 ): Promise<{ runId: Id<"generationRuns">; episodeId: Id<"episodes"> }> {

@@ -37,6 +37,42 @@ export const getInternal = internalQuery({
   },
 });
 
+export const setAudioRenderingInternal = internalMutation({
+  args: { episodeId: v.id("episodes"), voiceConfigVersion: v.string() },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.episodeId, {
+      audioStatus: "rendering",
+      voiceConfigVersion: args.voiceConfigVersion,
+      audioError: undefined,
+    });
+  },
+});
+
+export const setAudioReadyInternal = internalMutation({
+  args: {
+    episodeId: v.id("episodes"),
+    audioFileId: v.id("_storage"),
+    audioDurationSec: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.episodeId, {
+      audioStatus: "ready",
+      audioFileId: args.audioFileId,
+      audioDurationSec: args.audioDurationSec,
+    });
+  },
+});
+
+export const setAudioErrorInternal = internalMutation({
+  args: { episodeId: v.id("episodes"), audioError: v.string() },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.episodeId, {
+      audioStatus: "error",
+      audioError: args.audioError.slice(0, 1000),
+    });
+  },
+});
+
 export const insertFromRunInternal = internalMutation({
   args: {
     userTokenId: v.string(),

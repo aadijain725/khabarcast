@@ -52,17 +52,18 @@ partial delivery landed with poc 1 merge. remaining items listed below.
 
 - [x] read `convex/_generated/ai/guidelines.md` (overrides training data)
 - [ ] read relevant docs in `node_modules/next/dist/docs/` (next 16 breaking changes)
-- [x] `convex/schema.ts`: sources, episodes, generationRuns + indexes — **topicFlags still TODO**
+- [x] `convex/schema.ts`: sources, episodes, generationRuns, **topicFlags** + audio fields on episodes (`audioStatus`, `audioFileId`, `audioDurationSec`, `audioError`, `voiceConfigVersion`)
 - [x] install deps: `@anthropic-ai/sdk` (poc 1), `rss-parser` (poc 2)
-- [x] convex env: `ANTHROPIC_API_KEY` (dev) — still TODO: `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_KALAM`, `ELEVENLABS_VOICE_ANCHOR`, prod keys
-- [ ] `convex/pipeline/fetchSource.ts` (action) — wrap poc 2 script as a convex action, write result to `sources` table
+- [x] convex env: `ANTHROPIC_API_KEY` + `ELEVENLABS_API_KEY` on dev. still TODO: prod keys + `ELEVENLABS_VOICE_KALAM`/`ELEVENLABS_VOICE_ANCHOR` (optional; code has locked poc 4 defaults)
+- [x] `convex/pipeline/voices.ts` — shared voice config const (`getVoices()`, `VOICE_CONFIG_VERSION`)
+- [x] `convex/pipeline/fetchSource.ts` (action) — rss-parser + HTML entity decode, min 300 words, writes to `sources`
 - [x] ~~`convex/pipeline/selectTopics.ts` (action)~~ — **skipped per poc 3 decision (fold into poc 1)**
 - [x] `convex/pipeline/generateScript.ts` (action) — locked poc 1 prompt, smoke-verified
-- [ ] `convex/pipeline/renderAudio.ts` (action) — elevenlabs + convex file storage
-- [ ] `convex/pipeline/orchestrate.ts` (action) — hardcoded handoffs
-- [x] `convex/episodes.ts` — `get` + `listMine` (public) + `getInternal` + `insertFromRunInternal`. note: no top-level `generate` mutation — generation is driven by `pipeline/generateScript:run` action instead.
-- [ ] `convex/topicFlags.ts` — create/listMine
-- [x] local test: `pipeline/generateScript:runInternal` via `npx convex run` completes end-to-end
+- [x] `convex/pipeline/renderAudio.ts` (action) — elevenlabs + `ctx.storage`. serial (concurrency=1) for starter-tier limit. 429/5xx retry with 1s/2s/4s backoff. patches episode with audio state.
+- [x] `convex/pipeline/orchestrate.ts` (action) — fetchSource → generateScript → renderAudio, direct helper imports (no ctx.runAction rpc)
+- [x] `convex/episodes.ts` — `get` + `listMine` (public) + `getInternal` + `insertFromRunInternal` + `setAudio{Rendering,Ready,Error}Internal`
+- [x] `convex/topicFlags.ts` — `createFlag` / `listForEpisode` / `listMine` (all auth-wrapped) + `createInternal`
+- [x] local test: `pipeline/orchestrate:runInternal` chain fails cleanly on 429 → `renderAudio:runInternal` resumes on same episode after backoff — audioStatus `error → rendering → ready` verified
 
 ## phase 2 — ui (3 screens)
 

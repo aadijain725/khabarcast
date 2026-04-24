@@ -52,9 +52,36 @@ export default defineSchema({
     sourceTitle: v.string(),
     dialogue: dialogueValidator,
     promptVersion: v.string(),
+    // Audio render state. Absent = never rendered. Populated by renderAudio.
+    audioStatus: v.optional(
+      v.union(
+        v.literal("rendering"),
+        v.literal("ready"),
+        v.literal("error"),
+      ),
+    ),
+    audioFileId: v.optional(v.id("_storage")),
+    audioDurationSec: v.optional(v.number()),
+    audioError: v.optional(v.string()),
+    voiceConfigVersion: v.optional(v.string()),
   })
     .index("by_userToken", ["userTokenId"])
     .index("by_source", ["sourceId"]),
+
+  topicFlags: defineTable({
+    userTokenId: v.string(),
+    episodeId: v.id("episodes"),
+    topicIndex: v.number(),
+    kind: v.union(
+      v.literal("good"),
+      v.literal("bad"),
+      v.literal("too-long"),
+      v.literal("off-topic"),
+    ),
+    note: v.optional(v.string()),
+  })
+    .index("by_episode", ["episodeId"])
+    .index("by_userToken", ["userTokenId"]),
 
   generationRuns: defineTable({
     userTokenId: v.string(),
