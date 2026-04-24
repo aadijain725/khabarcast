@@ -21,17 +21,18 @@ prior phase (auth: google oauth + magic link, landing, waitlist) — **done**. s
 - [ ] follow-up for pipeline phase: decode html entities (`&#8217;` etc.) before feeding to claude
 
 ### poc 3 — topic selector (decision fork)
-- [ ] topic picker prompt, run against 3 articles from poc 2
-- [ ] smoke test: do topics improve poc 1 output vs raw article dump?
-- [ ] log decision in `poc/03-topic-selector-decision.md` — keep separate step or fold into poc 1
+- [x] topic picker prompt locked at `poc/03-topic-selector-prompt.md` (v0.1-2026-04-25)
+- [x] run against 3 articles from poc 2 — `poc/topics_out/{astralcodexten,noahpinion,slowboring}.json`. 3/3 returned valid JSON, 3 topics each, sharp tensions
+- [x] ~~smoke test: poc 1 raw vs with-topics~~ skipped — decision was lean-leaning; tie would still = fold. documented as v1 follow-up experiment in decision doc.
+- [x] **decision: fold into poc 1** — logged in `poc/03-topic-selector-decision.md` with reversal trigger
 
 ### poc 4 — tts (elevenlabs)
-- [ ] sign up elevenlabs free tier
-- [ ] pick 2 voice ids (kalam warm/reflective, anchor sharp/urgent)
-- [ ] synthesize 3 sample turns via api or playground. save mp3s to `poc/audio_samples/`
-- [ ] a/b listen: voices distinguishable in 2 sec?
-- [ ] tune stability/similarity/style params per voice
-- [ ] lock voice ids + param presets in `poc/04-voice-config.md`
+- [x] sign up elevenlabs free tier + create api key `khabarcast-dev` (scopes: text_to_speech + voices read)
+- [x] pick 2 voice ids — kalam: `oBcjxOGlStndvN2pZJ6V` (user clone), anchor: `8WqHCYyrnUqoK70Px5EJ` (Nitin shared voice, added 2026-04-25)
+- [x] synthesize 3 sample turns via `poc/04-tts-smoke.ts`. mp3s in `poc/audio_samples/` (`smoke_1/2/3*.mp3`)
+- [x] a/b listen: distinguishable — user picked kalam-B (turbo_v2_5) over multilingual_v2/v3, and anchor-C (eleven_v3) over multilingual_v2/turbo-pushed
+- [x] tune per-voice params: kalam `{stability:0.55, sim:0.80, style:0.20}` on turbo_v2_5; anchor `{stability:0.35, sim:0.75, style:0.55}` on eleven_v3
+- [x] lock voice ids + param presets in `poc/04-voice-config.md` (version `v1-2026-04-25`)
 
 ### poc 5 — end-to-end smoke (optional, recommended)
 - [ ] manually chain poc 2 → poc 3 → poc 1 → poc 4 with one article
@@ -41,8 +42,8 @@ prior phase (auth: google oauth + magic link, landing, waitlist) — **done**. s
 ### phase 0 gate
 - [x] poc 1 passed
 - [x] poc 2 passed
-- [ ] poc 4 passed
-- [ ] poc 3 decision logged
+- [x] poc 4 passed (2026-04-25, voice config locked)
+- [x] poc 3 decision logged — **fold into poc 1**
 
 ## phase 1 — schema + pipeline (convex, backend-first)
 
@@ -54,7 +55,7 @@ partial delivery landed with poc 1 merge. remaining items listed below.
 - [x] install deps: `@anthropic-ai/sdk` (poc 1), `rss-parser` (poc 2)
 - [x] convex env: `ANTHROPIC_API_KEY` (dev) — still TODO: `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_KALAM`, `ELEVENLABS_VOICE_ANCHOR`, prod keys
 - [ ] `convex/pipeline/fetchSource.ts` (action) — wrap poc 2 script as a convex action, write result to `sources` table
-- [ ] `convex/pipeline/selectTopics.ts` (action) — or skip per poc 3 decision
+- [x] ~~`convex/pipeline/selectTopics.ts` (action)~~ — **skipped per poc 3 decision (fold into poc 1)**
 - [x] `convex/pipeline/generateScript.ts` (action) — locked poc 1 prompt, smoke-verified
 - [ ] `convex/pipeline/renderAudio.ts` (action) — elevenlabs + convex file storage
 - [ ] `convex/pipeline/orchestrate.ts` (action) — hardcoded handoffs

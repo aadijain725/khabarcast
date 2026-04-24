@@ -1,16 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #09090B;
-  --color-fg: #FAFAFA;
-  --color-muted: #27272A;
-  --color-muted-fg: #A1A1AA;
-  --color-border: #3F3F46;
-  --color-accent: #DFE104;
-  --color-accent-fg: #000000;
+  /* Art Deco — dark luxury palette */
+  --color-bg: #0A0A0A;             /* Obsidian black */
+  --color-fg: #F2F0E4;             /* Champagne cream */
+  --color-card: #141414;           /* Rich charcoal */
+  --color-muted: #888888;          /* Pewter */
+  --color-border: #D4AF37;         /* Metallic gold */
+  --color-gold: #D4AF37;
+  --color-gold-light: #F2E8C4;
+  --color-midnight: #1E3D59;
 
-  --font-display: var(--font-space-grotesk), "Inter", system-ui, sans-serif;
-  --font-body: var(--font-space-grotesk), "Inter", system-ui, sans-serif;
+  /* Display: Marcellus — classical roman with deco flair. Body: Josefin Sans — geometric, vintage. */
+  --font-display: var(--font-marcellus), "Italiana", "Playfair Display", serif;
+  --font-body: var(--font-josefin), "Futura", "Century Gothic", system-ui, sans-serif;
 }
 
 html, body {
@@ -22,11 +25,58 @@ body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-weight: 300;
+  letter-spacing: 0.02em;
 }
 
+/* Diagonal crosshatch — subtle vintage print quality layered over the obsidian void */
+.deco-crosshatch {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(212, 175, 55, 0.04) 0, rgba(212, 175, 55, 0.04) 1px, transparent 1px, transparent 18px),
+    repeating-linear-gradient(-45deg, rgba(212, 175, 55, 0.04) 0, rgba(212, 175, 55, 0.04) 1px, transparent 1px, transparent 18px);
+}
+
+/* Sunburst radial — iconic Art Deco glow emanating from focal points */
+.deco-sunburst {
+  background-image: radial-gradient(
+    ellipse at center top,
+    rgba(212, 175, 55, 0.18) 0%,
+    rgba(212, 175, 55, 0.06) 30%,
+    transparent 60%
+  );
+}
+
+/* Gold metallic sheen — for buttons and bar fills */
+.deco-metal {
+  background: linear-gradient(135deg, #D4AF37 0%, #F2E8C4 40%, #D4AF37 60%, #A8862B 100%);
+}
+
+/* Glow halo — replaces soft drop shadows */
+.deco-glow {
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+}
+.deco-glow-strong {
+  box-shadow: 0 0 24px rgba(212, 175, 55, 0.45), 0 0 60px rgba(212, 175, 55, 0.12);
+}
+
+/* Display headings baseline */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+/* Decorative section divider — measured gold line, not full width */
+.deco-rule {
+  display: inline-block;
+  width: 6rem;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #D4AF37, transparent);
+}
+
+/* Text selection — champagne on gold */
 ::selection {
-  background: var(--color-accent);
-  color: #000;
+  background: #D4AF37;
+  color: #0A0A0A;
 }
 
 /* Infinite marquee — GPU-accelerated transform, duplicate content inside track for seamless loop */
@@ -45,28 +95,37 @@ body {
   to { transform: translate3d(-50%, 0, 0); }
 }
 
-/* Noise texture overlay */
+/* Film grain overlay */
 .noise {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 50;
-  opacity: 0.03;
+  opacity: 0.04;
   mix-blend-mode: overlay;
 }
 
-/* Fade + slide for form state transitions */
+/* Entrance: fade + slide (for form state transitions) */
 .fade-in {
-  animation: fadeIn 300ms ease-out;
+  animation: fadeIn 400ms ease-out;
 }
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Gold glow pulse — focus rings on interactive elements */
+@keyframes deco-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(212, 175, 55, 0.25); }
+  50% { box-shadow: 0 0 22px rgba(212, 175, 55, 0.55); }
+}
+.deco-pulse {
+  animation: deco-pulse 2.6s ease-in-out infinite;
 }
 
 /* Accessibility — kill motion for users who ask */
 @media (prefers-reduced-motion: reduce) {
   .marquee-track { animation: none; }
-  .fade-in { animation: none; }
+  .fade-in, .deco-pulse { animation: none; }
   * { transition-duration: 0.01ms !important; }
 }

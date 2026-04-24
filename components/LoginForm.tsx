@@ -26,27 +26,43 @@ export function LoginForm() {
   const loading = status === "redirecting";
 
   return (
-    <div className="w-full flex flex-col gap-6">
+    <div className="w-full flex flex-col gap-8">
       <button
         type="button"
         onClick={handleGoogle}
         disabled={loading}
-        className="w-full border-2 border-[#3F3F46] px-6 md:px-8 py-5 md:py-6 flex items-center justify-between gap-6 hover:bg-[#FAFAFA] hover:text-black hover:border-[#FAFAFA] transition-colors disabled:opacity-50 disabled:pointer-events-none"
+        className="group relative w-full border-2 border-[#D4AF37] px-8 py-6 flex items-center justify-between gap-6 text-[#D4AF37] transition-all duration-500 hover:bg-[#D4AF37] hover:text-[#0A0A0A] hover:shadow-[0_0_28px_rgba(212,175,55,0.4)] disabled:opacity-50 disabled:pointer-events-none"
       >
-        <span className="font-bold uppercase tracking-tighter text-xl md:text-3xl">
-          {loading ? "REDIRECTING…" : "CONTINUE WITH GOOGLE"}
+        <span aria-hidden="true" className="pointer-events-none absolute top-2 left-2 w-3 h-3 border-t border-l border-current opacity-60 group-hover:opacity-100 transition-opacity" />
+        <span aria-hidden="true" className="pointer-events-none absolute top-2 right-2 w-3 h-3 border-t border-r border-current opacity-60 group-hover:opacity-100 transition-opacity" />
+        <span aria-hidden="true" className="pointer-events-none absolute bottom-2 left-2 w-3 h-3 border-b border-l border-current opacity-60 group-hover:opacity-100 transition-opacity" />
+        <span aria-hidden="true" className="pointer-events-none absolute bottom-2 right-2 w-3 h-3 border-b border-r border-current opacity-60 group-hover:opacity-100 transition-opacity" />
+
+        <span className="flex items-center gap-4">
+          <span aria-hidden="true" className="inline-flex items-center justify-center w-8 h-8 border border-current rotate-45">
+            <span className="-rotate-45 font-display text-xs">G</span>
+          </span>
+          <span className="font-display uppercase tracking-[0.25em] text-base md:text-xl">
+            {loading ? "REDIRECTING" : "CONTINUE WITH GOOGLE"}
+          </span>
         </span>
-        <span className="font-bold text-xl md:text-3xl">→</span>
+        <span aria-hidden="true" className="font-display text-xl md:text-2xl transition-transform duration-500 group-hover:translate-x-1">→</span>
       </button>
-      <p className="uppercase tracking-widest text-xs text-[#A1A1AA]">
-        ONE CLICK. NO PASSWORDS. WE NEVER SEE YOUR GOOGLE CREDENTIALS.
-      </p>
+
+      <div className="flex items-center gap-4">
+        <span aria-hidden="true" className="h-px flex-1 bg-[#D4AF37]/30" />
+        <p className="font-display uppercase tracking-[0.3em] text-[10px] md:text-xs text-[#F2F0E4]/60 text-center">
+          ONE CLICK · NO PASSWORDS · WE NEVER SEE YOUR CREDENTIALS
+        </p>
+        <span aria-hidden="true" className="h-px flex-1 bg-[#D4AF37]/30" />
+      </div>
+
       {status === "error" && errorMessage && (
         <p
           role="alert"
-          className="uppercase tracking-widest text-xs md:text-sm text-[#DFE104] font-bold"
+          className="font-display uppercase tracking-[0.3em] text-xs md:text-sm text-[#D4AF37]"
         >
-          {errorMessage}
+          ◆ {errorMessage}
         </p>
       )}
     </div>

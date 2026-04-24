@@ -1,0 +1,45 @@
+{
+  "feed": "https://astralcodexten.substack.com/feed",
+  "article_title": "Links For April 2026",
+  "article_words": 6395,
+  "published_at": "2026-04-23T17:33:29.000Z",
+  "model": "claude-sonnet-4-6",
+  "prompt_version": "v0.1-2026-04-25",
+  "latency_ms": 14250,
+  "usage": {
+    "input_tokens": 9440,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 516,
+    "service_tier": "standard",
+    "inference_geo": "global"
+  },
+  "topics": {
+    "source_title": "Links Post (ACX-style roundup, untitled)",
+    "word_count": 5100,
+    "topics": [
+      {
+        "title": "AI therapy: help or crutch?",
+        "angle": "Whether on-demand AI therapy undermines the developmental benefits of therapy's scarcity and structure, not just its content.",
+        "why_it_matters": "Millions of people are turning to AI for mental health support, and if the 'reassurance on demand' model stunts emotional growth, scaling it could cause net harm even when individual conversations are high quality.",
+        "tension": "Advocates say AI therapy democratizes access to support that many people otherwise never get; skeptics say unlimited availability removes the productive friction that makes traditional therapy build independent coping capacity."
+      },
+      {
+        "title": "Red vs. blue state growth",
+        "angle": "Whether red states' apparent faster GDP growth reflects better policy or is an artifact of catch-up dynamics and the blue-state resource curse that immunizes bad policy from consequences.",
+        "why_it_matters": "The answer shapes whether either party's economic governance model deserves credit or blame, with real consequences for which policies spread to other states.",
+        "tension": "Small-government advocates say faster red-state growth is direct evidence their policies work; critics say richer blue states' advantages buffer the feedback loop between bad policy and poor outcomes, making naive causal inference in either direction misleading."
+      },
+      {
+        "title": "Distillation attacks vs. chip bans",
+        "angle": "Whether limiting China's chip supply is a more durable strategy than protecting AI model weights, given that distillation attacks can reverse-engineer capabilities through API queries alone.",
+        "why_it_matters": "If algorithms can be extracted without physical access to hardware, export controls on chips may be the only lever that actually slows Chinese AI parity, concentrating enormous geopolitical stakes in semiconductor supply chain policy.",
+        "tension": "Hardware-restriction proponents argue chips are the binding constraint that distillation cannot circumvent; others argue that distillation-derived models are inherently derivative and lagging, meaning algorithmic openness or closed weights matter more than chip access."
+      }
+    ]
+  }
+}

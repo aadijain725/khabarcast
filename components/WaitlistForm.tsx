@@ -8,6 +8,18 @@ type Status = "idle" | "loading" | "success" | "already" | "error";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Corner L-brackets — placed absolutely by parent */
+function CornerBrackets() {
+  return (
+    <>
+      <span aria-hidden="true" className="pointer-events-none absolute top-2 left-2 w-4 h-4 border-t border-l border-[#D4AF37]" />
+      <span aria-hidden="true" className="pointer-events-none absolute top-2 right-2 w-4 h-4 border-t border-r border-[#D4AF37]" />
+      <span aria-hidden="true" className="pointer-events-none absolute bottom-2 left-2 w-4 h-4 border-b border-l border-[#D4AF37]" />
+      <span aria-hidden="true" className="pointer-events-none absolute bottom-2 right-2 w-4 h-4 border-b border-r border-[#D4AF37]" />
+    </>
+  );
+}
+
 export function WaitlistForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -40,12 +52,18 @@ export function WaitlistForm() {
 
   if (status === "success") {
     return (
-      <div className="fade-in border-2 border-[#DFE104] bg-[#DFE104] text-black p-6 md:p-10">
-        <p className="font-bold uppercase tracking-tighter text-3xl md:text-5xl leading-[0.9]">
-          YOU&apos;RE IN.
+      <div className="fade-in relative bg-[#141414] border-2 border-[#D4AF37] p-10 deco-glow">
+        <CornerBrackets />
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <span aria-hidden="true" className="h-px w-10 bg-[#D4AF37]" />
+          <span aria-hidden="true" className="w-3 h-3 rotate-45 bg-[#D4AF37]" />
+          <span aria-hidden="true" className="h-px w-10 bg-[#D4AF37]" />
+        </div>
+        <p className="font-display uppercase tracking-[0.15em] text-3xl md:text-5xl text-[#D4AF37] leading-tight">
+          YOU ARE IN.
         </p>
-        <p className="mt-3 uppercase tracking-widest text-xs md:text-sm">
-          WE&apos;LL BE IN TOUCH WHEN EARLY ACCESS OPENS.
+        <p className="mt-5 font-display uppercase tracking-[0.3em] text-xs md:text-sm text-[#F2F0E4]/70">
+          WE WILL BE IN TOUCH WHEN EARLY ACCESS OPENS.
         </p>
       </div>
     );
@@ -53,11 +71,12 @@ export function WaitlistForm() {
 
   if (status === "already") {
     return (
-      <div className="fade-in border-2 border-[#3F3F46] p-6 md:p-10">
-        <p className="font-bold uppercase tracking-tighter text-3xl md:text-5xl leading-[0.9]">
-          ALREADY ON THE LIST.
+      <div className="fade-in relative bg-[#141414] border border-[#D4AF37]/60 p-10">
+        <CornerBrackets />
+        <p className="font-display uppercase tracking-[0.15em] text-3xl md:text-5xl text-[#F2F0E4] leading-tight">
+          ALREADY ENLISTED.
         </p>
-        <p className="mt-3 uppercase tracking-widest text-xs md:text-sm text-[#A1A1AA]">
+        <p className="mt-5 font-display uppercase tracking-[0.3em] text-xs md:text-sm text-[#F2F0E4]/60">
           SIT TIGHT — EARLY ACCESS IS COMING.
         </p>
       </div>
@@ -68,16 +87,16 @@ export function WaitlistForm() {
 
   return (
     <form onSubmit={handleSubmit} className="w-full" noValidate>
-      <div className="flex flex-col md:flex-row gap-4 md:gap-8 md:items-end">
-        <label className="flex-1 block">
-          <span className="block uppercase tracking-widest text-xs text-[#A1A1AA] mb-2">
-            EMAIL
+      <div className="flex flex-col md:flex-row gap-6 md:gap-10 md:items-end">
+        <label className="flex-1 block text-left">
+          <span className="block font-display uppercase tracking-[0.3em] text-[10px] md:text-xs text-[#D4AF37] mb-3">
+            EMAIL ADDRESS
           </span>
           <input
             type="email"
             autoComplete="email"
             inputMode="email"
-            placeholder="YOUR@EMAIL.COM"
+            placeholder="your@email.com"
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
@@ -85,23 +104,24 @@ export function WaitlistForm() {
             }}
             disabled={isLoading}
             aria-label="Email address"
-            className="w-full bg-transparent border-0 border-b-2 border-[#3F3F46] px-0 py-4 md:py-6 font-bold uppercase tracking-tighter text-2xl md:text-4xl lg:text-5xl text-[#FAFAFA] placeholder:text-[#27272A] outline-none transition-colors focus:border-[#DFE104] disabled:opacity-50"
+            className="w-full bg-transparent border-0 border-b-2 border-[#D4AF37] px-0 py-3 md:py-4 font-body text-lg md:text-2xl text-[#F2F0E4] placeholder:text-[#888888] placeholder:lowercase outline-none transition-all focus:border-[#F2E8C4] focus:shadow-[0_4px_10px_rgba(212,175,55,0.25)] disabled:opacity-50"
           />
         </label>
         <button
           type="submit"
           disabled={isLoading}
-          className="shrink-0 bg-[#DFE104] text-black font-bold uppercase tracking-tighter text-lg md:text-xl px-8 md:px-12 py-4 md:py-6 transition-transform duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+          className="group shrink-0 relative inline-flex items-center gap-3 border-2 border-[#D4AF37] text-[#D4AF37] font-display uppercase tracking-[0.3em] text-sm px-8 py-4 transition-all duration-500 hover:bg-[#D4AF37] hover:text-[#0A0A0A] hover:shadow-[0_0_20px_rgba(212,175,55,0.45)] disabled:opacity-50 disabled:pointer-events-none"
         >
-          {isLoading ? "JOINING…" : "JOIN →"}
+          <span>{isLoading ? "JOINING" : "JOIN"}</span>
+          <span aria-hidden="true" className="transition-transform duration-500 group-hover:translate-x-1">→</span>
         </button>
       </div>
       {status === "error" && errorMessage && (
         <p
           role="alert"
-          className="mt-4 uppercase tracking-widest text-xs md:text-sm text-[#DFE104] font-bold"
+          className="mt-5 font-display uppercase tracking-[0.3em] text-xs text-[#D4AF37]"
         >
-          {errorMessage}
+          ◆ {errorMessage}
         </p>
       )}
     </form>

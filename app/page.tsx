@@ -1,29 +1,30 @@
+import Link from "next/link";
 import { WaitlistForm } from "../components/WaitlistForm";
 import { NavAuthButton } from "../components/NavAuthButton";
 
 const STATS = [
-  { num: "12X", label: "FASTER THAN READING" },
+  { num: "XII", label: "FASTER THAN READING" },
   { num: "∞", label: "SOURCES SUPPORTED" },
   { num: "0", label: "ADS EVER" },
   { num: "24/7", label: "LISTEN ANYWHERE" },
-  { num: "6", label: "LANGUAGES LIVE" },
+  { num: "VI", label: "LANGUAGES LIVE" },
 ];
 
 const FEATURES = [
   {
-    num: "01",
+    num: "I",
     title: "INBOX IN. AUDIO OUT.",
     body:
       "Connect Substack, RSS, your reading list. KhabarCast packages every issue into a polished audio briefing.",
   },
   {
-    num: "02",
+    num: "II",
     title: "PICK A VOICE.",
     body:
       "Choose voices and languages that match your ear. Switch any time. Every briefing adapts to you.",
   },
   {
-    num: "03",
+    num: "III",
     title: "GETS SHARPER DAILY.",
     body:
       "The more you listen, the smarter the queue. Stories you actually want, in the order that fits your day.",
@@ -38,130 +39,195 @@ const TESTIMONIALS = [
   { quote: "SOUNDS LIKE A REAL SHOW.", author: "— S. NAKAMURA, TOKYO" },
 ];
 
+/** Art Deco corner brackets — L-shapes at opposite corners of a container */
+function CornerBrackets() {
+  return (
+    <>
+      <span aria-hidden="true" className="pointer-events-none absolute top-2 left-2 w-4 h-4 border-t border-l border-[#D4AF37]" />
+      <span aria-hidden="true" className="pointer-events-none absolute top-2 right-2 w-4 h-4 border-t border-r border-[#D4AF37]" />
+      <span aria-hidden="true" className="pointer-events-none absolute bottom-2 left-2 w-4 h-4 border-b border-l border-[#D4AF37]" />
+      <span aria-hidden="true" className="pointer-events-none absolute bottom-2 right-2 w-4 h-4 border-b border-r border-[#D4AF37]" />
+    </>
+  );
+}
+
+/** Rotated diamond frame — content inside counter-rotates to stay upright */
+function DiamondGlyph({ label }: { label: string }) {
+  return (
+    <span className="relative inline-flex items-center justify-center w-10 h-10 border border-[#D4AF37] rotate-45 shrink-0">
+      <span aria-hidden="true" className="-rotate-45 font-display text-[#D4AF37] text-sm">
+        {label}
+      </span>
+    </span>
+  );
+}
+
+/** Ornamental section heading — gold rules flanking a label */
+function SectionEyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-4 justify-center">
+      <span aria-hidden="true" className="deco-rule" />
+      <p className="font-display uppercase tracking-[0.4em] text-xs md:text-sm text-[#D4AF37]">
+        {children}
+      </p>
+      <span aria-hidden="true" className="deco-rule" />
+    </div>
+  );
+}
+
 export default function Page() {
   return (
     <main className="min-h-screen">
-      {/* NAV */}
-      <nav className="sticky top-0 z-40 bg-[#09090B] border-b-2 border-[#3F3F46]">
-        <div className="flex items-center justify-between px-4 md:px-8 h-14 md:h-16">
-          <span className="font-bold uppercase tracking-tighter text-base md:text-lg">
-            KHABARCAST<span className="text-[#DFE104]">.</span>
-          </span>
+      {/* NAV — framed header with double rule under */}
+      <nav className="sticky top-0 z-40 bg-[#0A0A0A]/95 backdrop-blur-sm border-b border-[#D4AF37]/60">
+        <div className="flex items-center justify-between px-4 md:px-10 h-16 md:h-20 max-w-7xl mx-auto relative">
+          <Link href="/" className="flex items-center gap-3 group">
+            <span aria-hidden="true" className="w-3 h-3 border border-[#D4AF37] rotate-45 group-hover:bg-[#D4AF37] transition-colors duration-300" />
+            <span className="font-display uppercase tracking-[0.3em] text-sm md:text-base text-[#F2F0E4]">
+              KHABARCAST
+            </span>
+          </Link>
           <NavAuthButton />
         </div>
+        {/* double-rule signature */}
+        <div aria-hidden="true" className="h-px bg-[#D4AF37]/30" />
       </nav>
 
-      {/* HERO */}
-      <section className="relative px-4 md:px-8 pt-16 md:pt-32 pb-20 md:pb-32 overflow-hidden">
-        <p className="uppercase tracking-widest text-xs md:text-sm text-[#A1A1AA] mb-6 md:mb-10">
-          [ EARLY ACCESS · 2026 ]
-        </p>
-        <h1 className="font-bold uppercase tracking-tighter leading-[0.85] text-[clamp(3rem,14vw,14rem)]">
-          YOUR READING
-          <br />
-          LIST,
-          <br />
-          <span className="text-[#DFE104]">SPOKEN.</span>
-        </h1>
-        <div className="mt-10 md:mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 items-end">
-          <p className="md:col-span-2 text-lg md:text-xl lg:text-2xl leading-tight text-[#A1A1AA] max-w-2xl">
+      {/* HERO — sunburst glow, centered ceremonial axis */}
+      <section className="relative px-4 md:px-8 pt-20 md:pt-36 pb-24 md:pb-40 overflow-hidden text-center">
+        <div aria-hidden="true" className="absolute inset-0 deco-sunburst pointer-events-none" />
+        {/* architectural vertical lines flanking the hero */}
+        <div aria-hidden="true" className="hidden md:block absolute left-10 top-20 bottom-20 w-px bg-gradient-to-b from-transparent via-[#D4AF37]/30 to-transparent" />
+        <div aria-hidden="true" className="hidden md:block absolute right-10 top-20 bottom-20 w-px bg-gradient-to-b from-transparent via-[#D4AF37]/30 to-transparent" />
+
+        <div className="relative max-w-5xl mx-auto">
+          <SectionEyebrow>EARLY ACCESS · MCMXXVI</SectionEyebrow>
+
+          <h1 className="mt-10 md:mt-14 font-display uppercase tracking-[0.08em] leading-[0.95] text-[clamp(2.75rem,11vw,10rem)] text-[#F2F0E4]">
+            YOUR READING
+            <br />
+            LIST,
+            <br />
+            <span className="text-[#D4AF37]">SPOKEN.</span>
+          </h1>
+
+          {/* decorative sunburst glyph under the title */}
+          <div className="mt-10 md:mt-14 flex items-center justify-center gap-6">
+            <span aria-hidden="true" className="h-px w-16 md:w-24 bg-[#D4AF37]" />
+            <span aria-hidden="true" className="w-3 h-3 rotate-45 border border-[#D4AF37]" />
+            <span aria-hidden="true" className="w-2 h-2 rotate-45 bg-[#D4AF37]" />
+            <span aria-hidden="true" className="w-3 h-3 rotate-45 border border-[#D4AF37]" />
+            <span aria-hidden="true" className="h-px w-16 md:w-24 bg-[#D4AF37]" />
+          </div>
+
+          <p className="mt-10 md:mt-14 mx-auto max-w-2xl text-base md:text-xl leading-relaxed text-[#F2F0E4]/80 font-light">
             KhabarCast turns your newsletters, RSS feeds, and saved articles
             into podcast-grade audio briefings. Commute, gym, walk — anywhere
             your eyes are busy.
           </p>
-          <div className="flex md:justify-end">
+
+          <div className="mt-12 md:mt-16 flex justify-center">
             <a
               href="#join"
-              className="inline-block bg-[#DFE104] text-black font-bold uppercase tracking-tighter px-8 py-4 text-lg transition-transform duration-200 hover:scale-105 active:scale-95"
+              className="group relative inline-flex items-center gap-4 border-2 border-[#D4AF37] text-[#D4AF37] font-display uppercase tracking-[0.3em] text-sm md:text-base px-10 py-5 transition-all duration-500 hover:bg-[#D4AF37] hover:text-[#0A0A0A] hover:shadow-[0_0_24px_rgba(212,175,55,0.45)]"
             >
-              JOIN WAITLIST →
+              <span>JOIN WAITLIST</span>
+              <span aria-hidden="true" className="transition-transform duration-500 group-hover:translate-x-1">→</span>
             </a>
           </div>
         </div>
       </section>
 
-      {/* STATS MARQUEE */}
+      {/* STATS MARQUEE — metallic gold ribbon, Roman numerals where possible */}
       <section
-        className="marquee bg-[#DFE104] text-black border-y-2 border-black py-6 md:py-8"
-        aria-label="Product stats"
+        className="marquee deco-metal text-[#0A0A0A] border-y-2 border-[#0A0A0A] py-5 md:py-7"
+        aria-label="Product statistics"
       >
         <div
           className="marquee-track"
-          style={{ ["--marquee-duration" as string]: "25s" }}
+          style={{ ["--marquee-duration" as string]: "32s" }}
         >
           {[...STATS, ...STATS, ...STATS, ...STATS].map((s, i) => (
             <div key={i} className="flex items-center gap-6 md:gap-10 pr-10 md:pr-16">
-              <span className="font-bold uppercase tracking-tighter text-[5rem] md:text-[8rem] leading-none">
+              <span className="font-display uppercase tracking-[0.05em] text-[4.5rem] md:text-[7rem] leading-none">
                 {s.num}
               </span>
-              <span className="font-bold uppercase tracking-tight text-sm md:text-lg max-w-[8ch] leading-tight">
+              <span className="font-display uppercase tracking-[0.3em] text-xs md:text-base max-w-[10ch] leading-tight">
                 {s.label}
               </span>
-              <span className="text-[5rem] md:text-[8rem] leading-none font-bold">/</span>
+              <span aria-hidden="true" className="w-3 h-3 rotate-45 bg-[#0A0A0A]" />
             </div>
           ))}
         </div>
       </section>
 
-      {/* FEATURES — sticky stacking cards */}
-      <section className="px-4 md:px-8 py-20 md:py-32">
-        <div className="mb-12 md:mb-20 flex flex-col md:flex-row items-start justify-between gap-6">
-          <h2 className="font-bold uppercase tracking-tighter leading-[0.85] text-5xl md:text-7xl lg:text-8xl">
-            HOW
-            <br />
-            IT
-            <br />
-            <span className="text-[#DFE104]">WORKS.</span>
-          </h2>
-          <p className="text-lg md:text-xl text-[#A1A1AA] max-w-md md:text-right">
-            Three steps. No apps to manage. Works with the sources you already
-            read.
-          </p>
-        </div>
+      {/* FEATURES — three ceremonial tiers with Roman numerals */}
+      <section className="relative px-4 md:px-8 py-28 md:py-40">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-20 md:mb-28">
+            <SectionEyebrow>HOW IT WORKS</SectionEyebrow>
+            <h2 className="mt-8 font-display uppercase tracking-[0.1em] leading-[0.95] text-5xl md:text-7xl text-[#F2F0E4]">
+              THREE <span className="text-[#D4AF37]">MOVEMENTS.</span>
+            </h2>
+            <p className="mt-6 mx-auto max-w-md text-base md:text-lg text-[#F2F0E4]/70 font-light leading-relaxed">
+              Three steps. No apps to manage. Works with the sources you already read.
+            </p>
+          </div>
 
-        <div className="flex flex-col gap-6 md:gap-10">
-          {FEATURES.map((f, i) => (
-            <article
-              key={f.num}
-              className="group sticky bg-[#09090B] border-2 border-[#3F3F46] p-6 md:p-12 hover:bg-[#DFE104] hover:border-[#DFE104] transition-colors duration-300"
-              style={{ top: `${96 + i * 24}px` }}
-            >
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 md:gap-12">
-                <span className="font-bold tabular-nums text-[6rem] md:text-[10rem] leading-[0.8] text-[#27272A] group-hover:text-black transition-colors duration-300">
-                  {f.num}
-                </span>
-                <div className="flex-1 md:max-w-xl md:text-right">
-                  <h3 className="font-bold uppercase tracking-tighter leading-[0.9] text-3xl md:text-5xl lg:text-6xl text-[#FAFAFA] group-hover:text-black transition-colors duration-300 md:group-hover:translate-x-[-2rem] md:transition-all">
-                    {f.title}
-                  </h3>
-                  <p className="mt-4 md:mt-6 text-base md:text-lg lg:text-xl leading-tight text-[#A1A1AA] group-hover:text-black group-hover:opacity-80 transition-colors duration-300">
-                    {f.body}
-                  </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {FEATURES.map((f) => (
+              <article
+                key={f.num}
+                className="group relative bg-[#141414] border border-[#D4AF37]/30 p-10 transition-all duration-500 hover:-translate-y-2 hover:border-[#D4AF37] hover:shadow-[0_0_24px_rgba(212,175,55,0.25)]"
+              >
+                <CornerBrackets />
+
+                {/* Roman numeral inside diamond */}
+                <div className="relative inline-flex items-center justify-center w-16 h-16 border-2 border-[#D4AF37] rotate-45 mb-10">
+                  <span className="-rotate-45 font-display text-2xl text-[#D4AF37]">
+                    {f.num}
+                  </span>
                 </div>
-              </div>
-            </article>
-          ))}
+
+                <h3 className="font-display uppercase tracking-[0.15em] text-xl md:text-2xl text-[#D4AF37] leading-snug">
+                  {f.title}
+                </h3>
+
+                {/* horizontal rule under title */}
+                <span aria-hidden="true" className="block h-px w-16 bg-[#D4AF37]/50 my-6 transition-all duration-500 group-hover:w-24 group-hover:bg-[#D4AF37]" />
+
+                <p className="text-base leading-relaxed text-[#F2F0E4]/80 font-light">
+                  {f.body}
+                </p>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* TESTIMONIALS MARQUEE */}
+      {/* TESTIMONIALS MARQUEE — framed quotes between gold dividers */}
       <section
-        className="marquee border-y-2 border-[#3F3F46] py-10 md:py-16"
+        className="relative border-y border-[#D4AF37]/40 py-16 md:py-20 overflow-hidden"
         aria-label="User testimonials"
       >
+        <div className="max-w-6xl mx-auto px-4 md:px-8 text-center mb-10 md:mb-14">
+          <SectionEyebrow>DISPATCHES FROM LISTENERS</SectionEyebrow>
+        </div>
         <div
           className="marquee-track"
-          style={{ ["--marquee-duration" as string]: "60s" }}
+          style={{ ["--marquee-duration" as string]: "70s" }}
         >
           {[...TESTIMONIALS, ...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => (
             <figure
               key={i}
-              className="flex flex-col justify-between border-r-2 border-[#3F3F46] px-8 md:px-16 py-4 min-w-[20rem] md:min-w-[36rem]"
+              className="flex flex-col justify-between border-r border-[#D4AF37]/30 px-10 md:px-16 py-4 min-w-[20rem] md:min-w-[32rem]"
             >
-              <blockquote className="font-bold uppercase tracking-tighter text-2xl md:text-4xl lg:text-5xl leading-[0.95]">
-                &ldquo;{t.quote}&rdquo;
+              <blockquote className="font-display uppercase tracking-[0.1em] text-xl md:text-3xl leading-snug text-[#F2F0E4]">
+                <span className="text-[#D4AF37] text-3xl md:text-5xl leading-none mr-1">“</span>
+                {t.quote}
+                <span className="text-[#D4AF37] text-3xl md:text-5xl leading-none ml-1">”</span>
               </blockquote>
-              <figcaption className="mt-4 md:mt-6 text-xs md:text-sm uppercase tracking-widest text-[#A1A1AA]">
+              <figcaption className="mt-6 font-display uppercase tracking-[0.3em] text-xs md:text-sm text-[#D4AF37]">
                 {t.author}
               </figcaption>
             </figure>
@@ -169,36 +235,51 @@ export default function Page() {
         </div>
       </section>
 
-      {/* WAITLIST CTA */}
+      {/* WAITLIST CTA — centered stage, gold framing */}
       <section
         id="join"
-        className="px-4 md:px-8 py-20 md:py-32 border-b-2 border-[#3F3F46]"
+        className="relative px-4 md:px-8 py-28 md:py-40 overflow-hidden"
       >
-        <p className="uppercase tracking-widest text-xs md:text-sm text-[#A1A1AA] mb-6 md:mb-10">
-          [ GET IN ]
-        </p>
-        <h2 className="font-bold uppercase tracking-tighter leading-[0.85] text-[clamp(2.5rem,10vw,9rem)] mb-10 md:mb-16">
-          DROP YOUR
-          <br />
-          <span className="text-[#DFE104]">EMAIL.</span>
-        </h2>
-        <WaitlistForm />
-        <p className="mt-6 md:mt-8 uppercase tracking-widest text-xs text-[#A1A1AA]">
-          NO SPAM · EARLY ACCESS · UNSUBSCRIBE ANY TIME
-        </p>
+        <div aria-hidden="true" className="absolute inset-0 deco-sunburst pointer-events-none opacity-70" />
+        <div className="relative max-w-3xl mx-auto text-center">
+          <SectionEyebrow>GAIN ADMITTANCE</SectionEyebrow>
+
+          <h2 className="mt-8 font-display uppercase tracking-[0.08em] leading-[0.95] text-[clamp(2.5rem,9vw,7rem)] text-[#F2F0E4]">
+            DROP YOUR
+            <br />
+            <span className="text-[#D4AF37]">EMAIL.</span>
+          </h2>
+
+          <div className="mt-12 md:mt-16">
+            <WaitlistForm />
+          </div>
+
+          <div className="mt-10 flex items-center justify-center gap-4">
+            <span aria-hidden="true" className="h-px w-10 bg-[#D4AF37]/60" />
+            <p className="font-display uppercase tracking-[0.3em] text-[10px] md:text-xs text-[#F2F0E4]/60">
+              NO SPAM · EARLY ACCESS · UNSUBSCRIBE ANY TIME
+            </p>
+            <span aria-hidden="true" className="h-px w-10 bg-[#D4AF37]/60" />
+          </div>
+        </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="px-4 md:px-8 py-12 md:py-16">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
-          <span className="font-bold uppercase tracking-tighter text-5xl md:text-7xl lg:text-8xl leading-[0.85]">
-            KHABAR
-            <br />
-            <span className="text-[#DFE104]">CAST.</span>
-          </span>
-          <div className="flex flex-col gap-2 text-xs md:text-sm uppercase tracking-widest text-[#A1A1AA]">
-            <span>© 2026 KHABARCAST</span>
+      {/* FOOTER — architectural mark */}
+      <footer className="border-t border-[#D4AF37]/40 px-4 md:px-8 py-14 md:py-20">
+        <div className="max-w-6xl mx-auto flex flex-col items-center gap-10 text-center">
+          <div className="flex items-center gap-4">
+            <DiamondGlyph label="K" />
+            <span className="font-display uppercase tracking-[0.25em] text-3xl md:text-5xl text-[#F2F0E4]">
+              KHABAR<span className="text-[#D4AF37]">CAST</span>
+            </span>
+            <DiamondGlyph label="C" />
+          </div>
+          <span aria-hidden="true" className="h-px w-24 bg-[#D4AF37]" />
+          <div className="flex flex-col md:flex-row gap-2 md:gap-8 font-display uppercase tracking-[0.3em] text-[10px] md:text-xs text-[#F2F0E4]/60">
+            <span>© MMXXVI KHABARCAST</span>
+            <span aria-hidden="true" className="hidden md:inline text-[#D4AF37]">◆</span>
             <span>AUDIO BRIEFINGS FOR YOUR FEED</span>
+            <span aria-hidden="true" className="hidden md:inline text-[#D4AF37]">◆</span>
             <span>MADE FOR LISTENING</span>
           </div>
         </div>

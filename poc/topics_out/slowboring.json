@@ -1,0 +1,45 @@
+{
+  "feed": "https://www.slowboring.com/feed",
+  "article_title": "What to make of the generic ballot",
+  "article_words": 4381,
+  "published_at": "2026-04-24T10:03:26.000Z",
+  "model": "claude-sonnet-4-6",
+  "prompt_version": "v0.1-2026-04-25",
+  "latency_ms": 13802,
+  "usage": {
+    "input_tokens": 5962,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 513,
+    "service_tier": "standard",
+    "inference_geo": "global"
+  },
+  "topics": {
+    "source_title": "Mailbag: Polls, Primaries, and Political Fashion",
+    "word_count": 3850,
+    "topics": [
+      {
+        "title": "Special elections vs. polls reliability",
+        "angle": "Whether Democrats should trust special election overperformance as a signal of genuine electoral strength or treat it as a structural artifact of low-turnout dynamics already captured by likely-voter polling.",
+        "why_it_matters": "Democratic strategists and donors deciding how aggressively to invest in 2026 Senate races are making bets based on which signal they trust more.",
+        "tension": "Special-election optimists argue actual voting behavior beats survey data; polarization theorists counter that low-turnout skew toward engaged Democrats is precisely what proper likely-voter screens already model, and 2024 proved the optimists wrong."
+      },
+      {
+        "title": "Progressive complacency fuels leftist critique",
+        "angle": "Whether the left's sharp criticism of Democratic establishment caution reflects a principled policy disagreement or an underlying confidence that Republicans are so weak that bold governance is essentially risk-free.",
+        "why_it_matters": "How Democrats diagnose their own base's motives shapes whether they pursue moderation or ideological ambition heading into 2028.",
+        "tension": "Progressives argue the party is leaving winnable fights on the table by playing it safe; the counterargument is that this confidence is itself a form of complacency that misreads a genuinely competitive electoral map."
+      },
+      {
+        "title": "Israel as proxy for Democratic identity",
+        "angle": "Whether intra-Democratic factional warfare over Israel is crowding out debate on the issues — immigration, energy, crime — where polling suggests moderation would actually help the party with swing voters.",
+        "why_it_matters": "Primary candidates, donors, and endorsers are sorting themselves on a foreign-policy axis that may have little bearing on the voters Democrats need to win back.",
+        "tension": "Israel hawks argue the issue reflects core values and coalition loyalty; critics counter that elevating it over domestic economic and public-safety issues is a strategic own-goal that advantages Republicans in swing districts."
+      }
+    ]
+  }
+}
