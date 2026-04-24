@@ -64,3 +64,18 @@
 **Trigger**: invoking a convex fn with structured args from the CLI
 **Do**: `npx convex run 'sources:createInternal' '{"userTokenId":"x","title":"t","rawText":"..."}'`. When the JSON contains apostrophes or newlines, write it to a file and `cat` it into the argument: `npx convex run 'fn' "$(cat /tmp/args.json)"`. There is no `--args-file` flag.
 **Why**: wasted a minute trying `--args-file`; the CLI silently prints the function list (looks like a "not found" error) when unrecognized flags parse as positional junk.
+
+### 2026-04-25 — ElevenLabs starter-tier concurrency counter doesn't drain instantly
+**Trigger**: calling `/v1/text-to-speech` serially but still hitting `429 concurrent_limit_exceeded`
+**Do**: add retry with exponential backoff on 429 + 5xx — e.g. 1s/2s/4s, max 4 attempts. Fail fast on other 4xx (auth/input errors). Even with `concurrency=1` in your code, a prior failed run can leave the account-side counter pegged for tens of seconds.
+**Why**: first phase 1 orchestrator run crashed mid-render with `TTS_CONCURRENCY=5`. Dropping to 2, then 1, still 429'd because ElevenLabs hadn't released the stuck slots. Backoff retry let the counter drain on attempt 2 and the render completed.
+
+### 2026-04-25 — `npx convex codegen` doesn't reliably register new function files; use `npx convex dev --once`
+**Trigger**: adding a new `convex/<newfile>.ts` (especially in a nested dir like `pipeline/`) and trying to invoke it via `npx convex run`
+**Do**: run `npx convex dev --once` after adding new function files. It forces a full deploy and is idempotent. `npx convex codegen` sometimes only refreshes local types without pushing new module registrations.
+**Why**: phase 1 smoke failed with "Could not find function for 'pipeline/orchestrate:runInternal'" despite codegen reporting "Uploading functions to Convex..." — the new file hadn't actually registered on the deployment. `dev --once` fixed it immediately.
+
+### 2026-04-25 — Helper-function composition beats cross-action RPC for same-runtime pipelines
+**Trigger**: orchestrator action wants to chain multiple other actions (all `"use node"`)
+**Do**: export each step's core logic as a regular async function (`doFetch`, `doGenerate`, `doRender`) taking `ActionCtx` + typed params. Import them in the orchestrator and call directly. Don't use `ctx.runAction` unless crossing V8↔Node.
+**Why**: convex guideline explicitly prefers helper composition over `ctx.runAction` for same-runtime calls (lower latency, shared error propagation, simpler types). Also gives you testability — helpers can be invoked standalone or re-invoked via `:runInternal` endpoints for resumption (we used this to retry `renderAudio` on an episode whose `generateScript` had already succeeded, saving an anthropic re-spend).
