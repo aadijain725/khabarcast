@@ -54,6 +54,7 @@ export type ValidatedFeed = {
 export type RejectedLine = {
   line: string;
   reason: string;
+  suggestion?: string;
 };
 
 export type CuratorBootstrapResult = {
@@ -76,52 +77,52 @@ function stripFences(s: string): string {
   return m ? m[1].trim() : t;
 }
 
-// Parse one user-input line into a normalized feed descriptor. Throws on
-// unrecognized shapes so the caller can surface the line back to the user
-// with the failure reason. NOT a fetch — pure string parsing.
-type ParsedFeedLine =
-  | { kind: "substack"; handle: string; feedUrl: string }
-  | { kind: "rss"; handle: string; feedUrl: string };
+// Substack-only. Best-effort handle extraction from messy input — bare handle,
+// @handle, profile URL, publication URL with or without protocol/path. Returns
+// null only when the input has zero usable token characters.
+function tryNormalizeToHandle(raw: string): string | null {
+  let s = raw.trim().toLowerCase();
+  if (!s) return null;
+  s = s.replace(/^https?:\/\//, "").replace(/^www\./, "");
+
+  const profile = s.match(/^substack\.com\/@?([a-z0-9-]+)/);
+  if (profile) return profile[1];
+
+  const pub = s.match(/^([a-z0-9-]+)\.substack\.com(?:\/.*)?$/);
+  if (pub) return pub[1];
+
+  s = s.replace(/^@/, "");
+  if (/^[a-z0-9][a-z0-9-]*$/.test(s)) return s;
+
+  return s.match(/[a-z0-9][a-z0-9-]*/)?.[0] ?? null;
+}
+
+// Throws on unrecognized shapes so the caller can surface the line back to the
+// user with the failure reason. NOT a fetch — pure string parsing.
+type ParsedFeedLine = { kind: "substack"; handle: string; feedUrl: string };
+
+class ParseError extends Error {
+  suggestion?: string;
+  constructor(message: string, suggestion?: string) {
+    super(message);
+    this.suggestion = suggestion;
+  }
+}
 
 function parseFeedLine(raw: string): ParsedFeedLine {
   const line = raw.trim();
-  if (!line) throw new Error("empty line");
+  if (!line) throw new ParseError("empty line");
 
-  // Pattern 1: full https URL
-  if (/^https?:\/\//i.test(line)) {
-    const url = line.replace(/\/+$/, "");
-    // Substack publication URL: https://<sub>.substack.com[/...]
-    const subMatch = url.match(
-      /^https?:\/\/([a-z0-9-]+)\.substack\.com(?:\/.*)?$/i,
-    );
-    if (subMatch) {
-      const sub = subMatch[1].toLowerCase();
-      if (RESERVED_SUBSTACK_SUBDOMAINS.has(sub)) {
-        throw new Error(`"${sub}" is a substack reserved subdomain, not a publication`);
-      }
-      return {
-        kind: "substack",
-        handle: sub,
-        feedUrl: `https://${sub}.substack.com/feed`,
-      };
-    }
-    // Already-suffixed feed URL → leave as-is
-    if (/\/(feed|rss|atom)(\.xml)?$/i.test(url)) {
-      return { kind: "rss", handle: url, feedUrl: url };
-    }
-    // Bare domain → try /feed (works for most wordpress/substack/ghost/etc)
-    return { kind: "rss", handle: url, feedUrl: `${url}/feed` };
-  }
-
-  // Pattern 2: bare handle ("noahpinion") or "@handle" → assume substack
-  const handle = line.replace(/^@/, "").toLowerCase();
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(handle)) {
-    throw new Error(
-      `"${line}" is not a valid substack handle or URL. use the publication subdomain (e.g. "noahpinion") or a full feed URL.`,
+  const handle = tryNormalizeToHandle(line);
+  if (!handle) {
+    throw new ParseError(
+      `"${line}" doesn't look like a substack handle or URL`,
     );
   }
   if (RESERVED_SUBSTACK_SUBDOMAINS.has(handle)) {
-    throw new Error(`"${handle}" is a substack reserved subdomain, not a publication`);
+    throw new ParseError(
+      `"${handle}" is a substack reserved subdomain, not a publication`,
+    );
   }
   return {
     kind: "substack",
@@ -132,23 +133,30 @@ function parseFeedLine(raw: string): ParsedFeedLine {
 
 // Validate a parsed feed by fetching one item. ≥1 item back = accept and
 // adopt the item's title-derived publication name as a best-effort `title`.
+// On fetch failure / empty feed, the parsed handle is attached as a
+// `suggestion` when it differs from what the user typed — so the UI can offer
+// a one-click retry.
 async function validateFeedLine(line: string): Promise<ValidatedFeed> {
   const parsed = parseFeedLine(line);
+  const trimmedLower = line.trim().toLowerCase();
+  const suggestion =
+    parsed.handle !== trimmedLower ? parsed.handle : undefined;
   let items;
   try {
     items = await fetchFeedItems(parsed.feedUrl, 1);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`fetch failed: ${msg}`);
-  }
-  if (items.length === 0) {
-    throw new Error(
-      `feed returned 0 items (post too short, feed empty, or wrong URL)`,
+    throw new ParseError(
+      `couldn't fetch ${parsed.handle}.substack.com: ${msg}`,
+      suggestion,
     );
   }
-  // Best-effort title: prettified handle. The connector layer doesn't expose
-  // <channel><title> separately so we'd have to re-fetch + re-parse to get
-  // the publication name. Cheap-and-good-enough is fine for the picker.
+  if (items.length === 0) {
+    throw new ParseError(
+      `feed returned 0 items (post too short, feed empty, or wrong handle)`,
+      suggestion,
+    );
+  }
   const title = prettifyHandle(parsed.handle);
   return {
     kind: parsed.kind,
@@ -268,12 +276,11 @@ export async function doCuratorBootstrap(
         const result = settled[i];
         const line = cleanedLines[i];
         if (result.status === "rejected") {
+          const r = result.reason;
           feedsRejected.push({
             line,
-            reason:
-              result.reason instanceof Error
-                ? result.reason.message
-                : String(result.reason),
+            reason: r instanceof Error ? r.message : String(r),
+            suggestion: r instanceof ParseError ? r.suggestion : undefined,
           });
           continue;
         }
