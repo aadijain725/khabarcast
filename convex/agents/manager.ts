@@ -18,7 +18,12 @@ import { v } from "convex/values";
 import { action, internalAction, ActionCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 import { withTrace } from "./lib/runLog";
-import { doCuratorBootstrap, CuratorBootstrapResult } from "./curator";
+import {
+  doCuratorBootstrap,
+  doCuratorFromTopics,
+  CuratorBootstrapResult,
+  CuratorFromTopicsResult,
+} from "./curator";
 import { doResearch } from "./researcher";
 import { doCompose } from "./composer";
 import { doRender } from "../pipeline/renderAudio";
@@ -39,7 +44,7 @@ type GenerateEpisodeResult = {
 
 export async function doOnboard(
   ctx: ActionCtx,
-  params: { userTokenId: string; substackHandle?: string },
+  params: { userTokenId: string; feedLines: string[] },
 ): Promise<CuratorBootstrapResult> {
   const { output } = await withTrace(
     ctx,
@@ -49,16 +54,14 @@ export async function doOnboard(
       agentName: "manager:onboard",
       model: MODEL,
       promptVersion: PROMPT_VERSION,
-      input: { substackHandle: params.substackHandle ?? null },
+      input: { lineCount: params.feedLines.length },
     },
     async (managerRunId) => {
-      // Curator's withTrace will register itself as a child of the manager run.
       const result = await doCuratorBootstrap(ctx, {
         userTokenId: params.userTokenId,
-        substackHandle: params.substackHandle,
+        feedLines: params.feedLines,
         parentRunId: managerRunId,
       });
-      // Manager doesn't call claude itself — no tokens, no cost.
       return {
         output: result,
         tokensIn: 0,
@@ -69,6 +72,38 @@ export async function doOnboard(
   );
 
   return output.output as CuratorBootstrapResult;
+}
+
+export async function doSuggestFromTopics(
+  ctx: ActionCtx,
+  params: { userTokenId: string; topics: string[] },
+): Promise<CuratorFromTopicsResult> {
+  const { output } = await withTrace(
+    ctx,
+    {
+      userTokenId: params.userTokenId,
+      step: "manager",
+      agentName: "manager:suggestFromTopics",
+      model: MODEL,
+      promptVersion: PROMPT_VERSION,
+      input: { topicCount: params.topics.length },
+    },
+    async (managerRunId) => {
+      const result = await doCuratorFromTopics(ctx, {
+        userTokenId: params.userTokenId,
+        topics: params.topics,
+        parentRunId: managerRunId,
+      });
+      return {
+        output: result,
+        tokensIn: 0,
+        tokensOut: 0,
+        costUsd: 0,
+      };
+    },
+  );
+
+  return output.output as CuratorFromTopicsResult;
 }
 
 export async function doGenerateEpisode(
@@ -169,20 +204,28 @@ export async function doGenerateEpisode(
 
 export const onboard = action({
   args: {
-    substackHandle: v.optional(v.string()),
+    feedLines: v.array(v.string()),
   },
-  handler: async (
-    ctx,
-    args,
-  ): Promise<{
-    feedsDiscovered: { kind: "substack" | "rss"; handle: string; title: string }[];
-    suggestedTopics: string[];
-  }> => {
+  handler: async (ctx, args): Promise<CuratorBootstrapResult> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("not authenticated");
     return await doOnboard(ctx, {
       userTokenId: identity.tokenIdentifier,
-      substackHandle: args.substackHandle,
+      feedLines: args.feedLines,
+    });
+  },
+});
+
+export const suggestFromTopics = action({
+  args: {
+    topics: v.array(v.string()),
+  },
+  handler: async (ctx, args): Promise<CuratorFromTopicsResult> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("not authenticated");
+    return await doSuggestFromTopics(ctx, {
+      userTokenId: identity.tokenIdentifier,
+      topics: args.topics,
     });
   },
 });
@@ -208,12 +251,12 @@ export const generateEpisode = action({
 export const onboardInternal = internalAction({
   args: {
     userTokenId: v.string(),
-    substackHandle: v.optional(v.string()),
+    feedLines: v.array(v.string()),
   },
   handler: async (ctx, args): Promise<CuratorBootstrapResult> => {
     return await doOnboard(ctx, {
       userTokenId: args.userTokenId,
-      substackHandle: args.substackHandle,
+      feedLines: args.feedLines,
     });
   },
 });

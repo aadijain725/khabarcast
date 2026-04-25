@@ -143,9 +143,27 @@ export async function doResearch(
           );
         }
       }
-      const candidates = dedupeByLink(collected);
+      let candidates = dedupeByLink(collected);
       if (candidates.length === 0) {
         throw new Error(`no candidate articles found across ${feeds.length} feeds`);
+      }
+
+      // Dedupe against this user's history. Researcher should never re-pick
+      // an article that's already been turned into an episode for this user.
+      const seenUrls = await ctx.runQuery(
+        internal.sources.listUrlsForUserInternal,
+        { userTokenId: params.userTokenId },
+      );
+      const seenSet = new Set(seenUrls);
+      const beforeDedupe = candidates.length;
+      candidates = candidates.filter((c) => {
+        if (!c.link) return true; // can't dedupe what has no link
+        return !seenSet.has(c.link.toLowerCase().trim());
+      });
+      if (candidates.length === 0) {
+        throw new Error(
+          `no fresh articles in your feeds — all ${beforeDedupe} candidates already covered. add more feeds or wait for new posts.`,
+        );
       }
 
       // Filter topics with positive weight only — negative weights are signals to AVOID.

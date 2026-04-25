@@ -197,6 +197,42 @@ MANAGER (claude sonnet, convex action)
 - [ ] commit + push → vercel auto-deploy
 - [ ] `npx convex deploy` for backend
 
+### curator personalization fix (2026-04-25, in progress)
+
+**bug**: curator scrapes `substack.com/@<handle>` (= user PROFILE, not their reads) → recommends pubs the user *follows on substack*, not their actual newsletter list. then silently falls back to a hardcoded list (noahpinion, slowboring, etc) when scrape returns nothing. researcher re-runs pick same articles because no exclude-already-covered logic. result: every user gets the same 5 substacks, same articles, every time.
+
+**A. replace profile-scrape with explicit feed-list (the real fix)**
+- [x] new helper `parseFeedLine(line)` in curator: handles bare substack handle, `@handle`, `https://x.substack.com`, full RSS URL → `{kind, handle, normalizedFeedUrl}`
+- [x] `doCuratorBootstrap` takes `feedLines: string[]`. validates each line via `fetchFeedItems(url, 1)` in parallel (Promise.allSettled). returns `{feedsValidated, feedsRejected: [{line, reason}], suggestedTopics}`
+- [x] cluster topics via claude using ONLY validated feed titles (drop FALLBACK_TOPICS)
+- [x] drop FALLBACK_FEEDS entirely (D)
+- [x] manager.onboard signature update: `feedLines` instead of `substackHandle`
+- [x] update onboarding page: textarea (one feed per line) + per-line validation badges + reject reasons inline
+
+**B. topic-first path (for users without a list)**
+- [x] new file `convex/connectors/topicCatalog.ts` — hand-curated 6 themes × 3 substacks
+- [x] new internal helper `feedsForTopics(topics: string[]) → CatalogFeed[]` (case-insensitive substring match)
+- [x] new public action `agents.curator.fromTopics({topics})` + `agents.manager.suggestFromTopics`
+- [x] onboarding page: mode toggle between "i have feeds" (textarea) and "show me popular" (topic chips → suggested feeds → multi-select)
+
+**C. researcher dedupe (no repeat articles)**
+- [x] new internal query `sources.listUrlsForUserInternal(userTokenId) → string[]`
+- [x] researcher filters candidates by url already in user's sources before ranking
+- [x] all-dupes throws "no fresh articles in your feeds — add more or wait for new posts"
+
+**D. no silent fallback**
+- [x] curator throws explicit error when 0 valid feeds, with sample rejected lines
+- [x] manager.onboard surfaces validation errors back to UI (CuratorBootstrapResult)
+- [x] onboarding page renders rejected-lines block with reasons
+
+**verify**
+- [x] types pass (`npx tsc --noEmit`)
+- [x] lint pass
+- [x] backend smoke: 4 lines (2 valid + 2 invalid) → curator returned 2 valid, 2 rejected with honest reasons, 6 topics clustered from real feeds. trace row visible in /app/runs.
+- [x] backend smoke: topic chips → catalog lookup returned 6 feeds across 2 themes, deduped by handle.
+- [x] backend smoke: researcher run 1 → 6 candidates picked one article. run 2 → 5 candidates (1 filtered as already-covered) picked a different article. dedupe confirmed.
+- [ ] browser smoke (mode A textarea, mode B chips, end-to-end commit) — needs your eyes; dev server running on :3000
+
 ## review
 
 ### poc 1 + poc 2 + partial phase 1 landing (2026-04-24)

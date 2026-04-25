@@ -67,3 +67,21 @@ export const getOwnedInternal = internalQuery({
     return row;
   },
 });
+
+// phase 4 (MAAS): used by researcher to skip articles already covered for
+// this user. URLs from sources.url, deduped, lowercased for case-insensitive
+// match. Sources without a url are excluded (nothing to compare against).
+export const listUrlsForUserInternal = internalQuery({
+  args: { userTokenId: v.string() },
+  handler: async (ctx, args): Promise<string[]> => {
+    const rows = await ctx.db
+      .query("sources")
+      .withIndex("by_userToken", (q) => q.eq("userTokenId", args.userTokenId))
+      .collect();
+    const urls = new Set<string>();
+    for (const r of rows) {
+      if (r.url) urls.add(r.url.toLowerCase().trim());
+    }
+    return Array.from(urls);
+  },
+});
