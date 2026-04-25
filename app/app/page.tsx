@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { GenerateFromFeeds } from "../../components/GenerateFromFeeds";
-import { SourceInput } from "../../components/SourceInput";
 
 export default function GeneratePage() {
   return (
@@ -33,21 +32,6 @@ export default function GeneratePage() {
 
       <div className="relative max-w-3xl mx-auto mt-12 md:mt-16">
         <GenerateFromFeeds />
-      </div>
-
-      <div className="relative max-w-3xl mx-auto mt-20 md:mt-28">
-        <details className="border border-[#D4AF37]/20 bg-[#141414] p-4 md:p-6">
-          <summary className="cursor-pointer font-display uppercase tracking-[0.3em] text-[10px] md:text-xs text-[#D4AF37]">
-            OR PASTE A FEED URL DIRECTLY ▾
-          </summary>
-          <p className="mt-4 text-sm text-[#F2F0E4]/65 leading-relaxed">
-            Bypass the agent pipeline. Pulls the latest item from any RSS/Atom
-            feed and runs the legacy two-host generator.
-          </p>
-          <div className="mt-5">
-            <SourceInput />
-          </div>
-        </details>
       </div>
 
       <div className="relative max-w-5xl mx-auto mt-16 md:mt-20 flex items-center justify-between gap-4 border-t border-[#D4AF37]/30 pt-8">
