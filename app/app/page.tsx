@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { HostCardStack } from "../../components/HostCard";
+import { GenerateFromFeeds } from "../../components/GenerateFromFeeds";
 import { SourceInput } from "../../components/SourceInput";
 
 export default function GeneratePage() {
@@ -19,30 +19,35 @@ export default function GeneratePage() {
         </div>
 
         <h1 className="mt-8 font-display uppercase tracking-[0.08em] leading-[0.95] text-[clamp(2.5rem,8vw,7rem)] text-[#F2F0E4]">
-          PASTE A FEED.
+          YOUR FEED.
           <br />
-          <span className="text-[#D4AF37]">GET A SHOW.</span>
+          <span className="text-[#D4AF37]">DEBATED.</span>
         </h1>
 
         <p className="mt-8 max-w-2xl text-base md:text-lg text-[#F2F0E4]/75 leading-relaxed">
-          Drop any substack or RSS feed URL. We pull the latest issue, turn it
-          into a two-host dialogue between KALAM and ANCHOR, and render it to
-          audio you can listen to.
+          A team of agents reads your newsletter feed, picks the most relevant
+          piece against your topic preferences, builds two ideological stances,
+          and composes a debate between two voices.
         </p>
-
-        <div className="mt-12 md:mt-16">
-          <SourceInput />
-        </div>
       </div>
 
-      <div className="relative max-w-5xl mx-auto mt-20 md:mt-28">
-        <div className="flex items-center gap-4 mb-8">
-          <span aria-hidden="true" className="deco-rule" />
-          <p className="font-display uppercase tracking-[0.4em] text-[10px] md:text-xs text-[#D4AF37]">
-            YOUR HOSTS
+      <div className="relative max-w-3xl mx-auto mt-12 md:mt-16">
+        <GenerateFromFeeds />
+      </div>
+
+      <div className="relative max-w-3xl mx-auto mt-20 md:mt-28">
+        <details className="border border-[#D4AF37]/20 bg-[#141414] p-4 md:p-6">
+          <summary className="cursor-pointer font-display uppercase tracking-[0.3em] text-[10px] md:text-xs text-[#D4AF37]">
+            OR PASTE A FEED URL DIRECTLY ▾
+          </summary>
+          <p className="mt-4 text-sm text-[#F2F0E4]/65 leading-relaxed">
+            Bypass the agent pipeline. Pulls the latest item from any RSS/Atom
+            feed and runs the legacy two-host generator.
           </p>
-        </div>
-        <HostCardStack />
+          <div className="mt-5">
+            <SourceInput />
+          </div>
+        </details>
       </div>
 
       <div className="relative max-w-5xl mx-auto mt-16 md:mt-20 flex items-center justify-between gap-4 border-t border-[#D4AF37]/30 pt-8">
