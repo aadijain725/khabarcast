@@ -14,6 +14,7 @@ import type * as agents_ideologyAgent from "../agents/ideologyAgent.js";
 import type * as agents_lib_runLog from "../agents/lib/runLog.js";
 import type * as agents_manager from "../agents/manager.js";
 import type * as agents_researcher from "../agents/researcher.js";
+import type * as agents_speakerResearcher from "../agents/speakerResearcher.js";
 import type * as auth from "../auth.js";
 import type * as connectors_genericRss from "../connectors/genericRss.js";
 import type * as connectors_index from "../connectors/index.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   "agents/lib/runLog": typeof agents_lib_runLog;
   "agents/manager": typeof agents_manager;
   "agents/researcher": typeof agents_researcher;
+  "agents/speakerResearcher": typeof agents_speakerResearcher;
   auth: typeof auth;
   "connectors/genericRss": typeof connectors_genericRss;
   "connectors/index": typeof connectors_index;

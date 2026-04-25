@@ -197,6 +197,42 @@ MANAGER (claude sonnet, convex action)
 - [ ] commit + push → vercel auto-deploy
 - [ ] `npx convex deploy` for backend
 
+## phase 5 — voice clone agent (deferred from phase 4)
+
+phase A of speaker creation shipped: research agent fills name/persona/ideology from Wikipedia + Claude. voiceId is optional with a slot-based fallback. phase 5 closes the loop — the user types a person and the agent ALSO produces a real ElevenLabs voiceId cloned from a YouTube interview clip. companion changelog: `tasks/changes/2026-04-25-curator-and-hosts.md`.
+
+### infra decision (block on this first)
+
+- [ ] pick YouTube extractor:
+  - cobalt.tools (free, no key, third-party reliability risk — has had outages and ToS shifts)
+  - paid rapidapi-yt-mp3 (~$10/mo, more reliable, real ToS, adds env var + cost)
+  - vercel sandbox + yt-dlp (zero third-party deps, but real plumbing — sandbox setup, binary, ffmpeg trim)
+
+### agent
+
+- [ ] new file `convex/agents/voiceClone.ts` — `doVoiceClone(ctx, { personName, slot, userTokenId, parentRunId? })`:
+  - search YouTube for the best interview clip (longest single-speaker monologue, clean audio). claude can suggest a query; YouTube Data API v3 search returns top results; we pick longest.
+  - download mp3 via the chosen extractor (~3-5 min target — IVC works on short samples).
+  - POST `multipart/form-data` to `https://api.elevenlabs.io/v1/voices/add` with `{ name, files[], description, labels? }`. `xi-api-key` header (auth pattern from `convex/pipeline/renderAudio.ts`).
+  - returns `{ voiceId, sourceYoutubeUrl, durationSec, costUsd }`.
+- [ ] wrap entire flow in `withTrace` with `step:"voice"`, `agentName:"voice-clone-${slot}"`, `model:"elevenlabs-ivc"`. trace input includes the chosen YouTube URL for reproducibility.
+- [ ] env vars: `YOUTUBE_API_KEY` (search), `YOUTUBE_EXTRACTOR_KEY` (only if paid extractor route).
+- [ ] internal CLI variant `runInternal` for smoke without auth.
+
+### UI
+
+- [ ] hosts page: new "GENERATE VOICE FROM YOUTUBE" button next to the RESEARCH button (or below the research-success banner). same `personName` + `slot` already in state — just call the action.
+- [ ] on success, populate the `voiceId` field automatically. small banner: "voice cloned from <youtube link> — sample plays below".
+- [ ] audio preview element loads the IVC voice's sample mp3 (or a short pre-render).
+- [ ] on extractor failure: surface the existing manual paste flow with a clear "auto-fetch failed — upload audio at elevenlabs.io/app/voices?action=ivc and paste the id". zero user lockout — fall back to the phase-A path.
+
+### verification
+
+- [ ] backend smoke: `npx convex run agents/voiceClone:runInternal '{"userTokenId":"smoke","personName":"Naval Ravikant","slot":"KALAM"}'` → returns a valid voiceId. test render an episode with that voice; confirm audio sounds like Naval (not the seed Kalam voice).
+- [ ] failure path: simulate extractor 4xx → action throws clear message; UI shows the manual-paste fallback.
+- [ ] cost target: < $0.50 per clone (extractor + IVC + claude search picker).
+- [ ] trace tree: `/app/runs` shows the full voice-clone subtree under the hosts page action.
+
 ### curator personalization fix (2026-04-25, in progress)
 
 **bug**: curator scrapes `substack.com/@<handle>` (= user PROFILE, not their reads) → recommends pubs the user *follows on substack*, not their actual newsletter list. then silently falls back to a hardcoded list (noahpinion, slowboring, etc) when scrape returns nothing. researcher re-runs pick same articles because no exclude-already-covered logic. result: every user gets the same 5 substacks, same articles, every time.

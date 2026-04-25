@@ -112,13 +112,13 @@ export function GenerateFromFeeds() {
     <div className="space-y-6">
       <div className="grid gap-3 md:grid-cols-2">
         <SlotPicker
-          label="KALAM SLOT"
+          label="MAIN SPEAKER"
           hosts={kalams}
           selected={kalamId}
           onSelect={setKalamOverride}
         />
         <SlotPicker
-          label="ANCHOR SLOT"
+          label="HOST"
           hosts={anchors}
           selected={anchorId}
           onSelect={setAnchorOverride}

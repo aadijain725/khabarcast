@@ -68,11 +68,16 @@ export const getOwnedOrGlobalInternal = internalQuery({
 
 // User-facing create (auth-wrapped). For now, slot is required — future
 // migration to N speakers will widen this.
+//
+// voiceId is OPTIONAL. If not provided, we default to the voice config of
+// the first global host filling the same slot — i.e. "Kalam-inspired"'s voice
+// for MAIN SPEAKER (KALAM), "Skeptical Anchor"'s voice for HOST (ANCHOR).
+// Phase B will let users replace the default by cloning from YouTube → IVC.
 export const create = mutation({
   args: {
     slot: SLOT,
     name: v.string(),
-    voiceId: v.string(),
+    voiceId: v.optional(v.string()),
     voiceModel: v.optional(v.string()),
     voiceParams: v.optional(VOICE_PARAMS),
     ideologyPrompt: v.string(),
@@ -81,13 +86,36 @@ export const create = mutation({
   handler: async (ctx, args): Promise<Id<"hosts">> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("not authenticated");
+
+    let voiceId = args.voiceId?.trim();
+    let voiceModel = args.voiceModel;
+    let voiceParams = args.voiceParams;
+
+    if (!voiceId) {
+      // Look up the slot's default global host for voice fallback.
+      const globals = await ctx.db
+        .query("hosts")
+        .withIndex("by_owner", (q) => q.eq("ownerTokenId", undefined))
+        .collect();
+      const fallback = globals.find((h) => h.slot === args.slot);
+      if (!fallback) {
+        throw new Error(
+          `no global host seeded for slot ${args.slot} — voice fallback unavailable. seed the defaults or pass a voiceId.`,
+        );
+      }
+      voiceId = fallback.voiceId;
+      // Inherit fallback model/params only when caller didn't override.
+      voiceModel = voiceModel ?? fallback.voiceModel;
+      voiceParams = voiceParams ?? fallback.voiceParams;
+    }
+
     return await ctx.db.insert("hosts", {
       ownerTokenId: identity.tokenIdentifier,
       slot: args.slot,
       name: args.name,
-      voiceId: args.voiceId,
-      voiceModel: args.voiceModel,
-      voiceParams: args.voiceParams,
+      voiceId,
+      voiceModel,
+      voiceParams,
       ideologyPrompt: args.ideologyPrompt,
       persona: args.persona,
       createdAt: Date.now(),

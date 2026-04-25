@@ -70,6 +70,14 @@ export function TopicFlagBar({
   );
 }
 
+// User-facing slot label. The schema literals (KALAM/ANCHOR) stay internal —
+// renaming them would be a migration. We map at render time so transcripts
+// read in plain English.
+const SPEAKER_LABEL: Record<"KALAM" | "ANCHOR", string> = {
+  KALAM: "MAIN SPEAKER",
+  ANCHOR: "HOST",
+};
+
 export function TranscriptTurn({
   speaker,
   text,
@@ -92,7 +100,7 @@ export function TranscriptTurn({
             isKalam ? "text-[#D4AF37]" : "text-[#F2F0E4]/80",
           ].join(" ")}
         >
-          {speaker}
+          {SPEAKER_LABEL[speaker]}
         </p>
         <span
           aria-hidden="true"
