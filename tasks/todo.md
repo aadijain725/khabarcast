@@ -131,43 +131,44 @@ MANAGER (claude sonnet, convex action)
 
 ### schema additions (additive, zero-downtime)
 
-- [ ] `convex/schema.ts`: add `hosts` table { ownerTokenId?, slot ("KALAM"|"ANCHOR"), name, voiceId, voiceModel, voiceParams, ideologyPrompt, persona, createdAt }
-- [ ] add `userTopics` { userTokenId, topic, weight, source ("onboarding"|"feedback"|"trending"|"manual"), lastReinforcedAt }
-- [ ] add `userFeeds` { userTokenId, kind ("substack"|"rss"|"feedly"), handle, title?, addedAt }
-- [ ] extend `episodes` with optional `hostMapping` { KALAM: Id<hosts>, ANCHOR: Id<hosts> }
-- [ ] extend `generationRuns` with optional trace fields: step, agentName, parentRunId, inputPreview, outputPreview, tokensIn, tokensOut, costUsd, latencyMs
-- [ ] seed two global hosts on first deploy: KALAM (existing voice + ideology) + ANCHOR (existing voice + ideology)
+- [x] `convex/schema.ts`: add `hosts` table { ownerTokenId?, slot ("KALAM"|"ANCHOR"), name, voiceId, voiceModel, voiceParams, ideologyPrompt, persona, createdAt }
+- [x] add `userTopics` { userTokenId, topic, weight, source ("onboarding"|"feedback"|"trending"|"manual"), lastReinforcedAt }
+- [x] add `userFeeds` { userTokenId, kind ("substack"|"rss"|"feedly"), handle, title?, addedAt }
+- [x] extend `episodes` with optional `hostMapping` { KALAM: Id<hosts>, ANCHOR: Id<hosts> }
+- [x] extend `generationRuns` with optional trace fields: step, agentName, parentRunId, inputPreview, outputPreview, tokensIn, tokensOut, costUsd, latencyMs (+ sourceId widened to optional for curator/manager runs)
+- [x] seed two global hosts on first deploy: KALAM (existing voice + ideology) + ANCHOR (existing voice + ideology) — `hosts.seedDefaultsInternal`
 
 ### connectors (newsletter ingest abstraction)
 
-- [ ] `convex/connectors/types.ts` — `Connector` interface: `fetchLatest(handle, n) → RawPost[]`, `parsePost(raw) → CleanArticle`
-- [ ] `connectors/substack.ts` — handle.substack.com/feed (refactor of existing fetchSource)
-- [ ] `connectors/genericRss.ts` — paste-any-feed escape hatch
-- [ ] `connectors/feedly.ts` — recs-only (no full body), keyed by category
+- [x] `convex/connectors/types.ts` — `Connector` interface: `fetchLatest(handle, n) → RawArticle[]`
+- [x] `connectors/substack.ts` — handle.substack.com/feed (wraps existing `fetchFeedItems` helper from fetchSource)
+- [x] `connectors/genericRss.ts` — paste-any-feed escape hatch
+- [x] `connectors/index.ts` — registry; `getConnector(kind)`
+- [ ] `connectors/feedly.ts` — DEFERRED (recs-only fallback, not on critical path)
 
 ### agents
 
-- [ ] `convex/agents/lib/runLog.ts` — `logStep(ctx, {parentRunId, step, agentName, input, output, tokens, cost, latency})` → writes generationRuns row
-- [ ] `convex/agents/manager.ts` — intent router; orchestrates curator OR full episode pipeline; spawns ideology agents based on host selection; returns root runId
-- [ ] `convex/agents/curator.ts` — substack-profile scrape + feedly fallback + claude topic clustering + feedback-loop reweighting
-- [ ] `convex/agents/researcher.ts` — picks top articles by user_topics weight; emits chosen_articles[]
-- [ ] `convex/agents/ideologyAgent.ts` — generic, parameterized by host record; returns stance + arguments + tone
-- [ ] `convex/agents/composer.ts` — refactor of generateScript; takes ideology stances (not raw facts) as primary input
+- [x] `convex/agents/lib/runLog.ts` — `withTrace(ctx, meta, body) → { runId, output }`; auto-pending → ok/error patch with latency + cost + token + output preview
+- [x] `convex/agents/ideologyAgent.ts` — claude-haiku-4-5, parameterized by host record; returns IdeologyStance
+- [x] `convex/agents/composer.ts` — sub-team manager; spawns 2 ideology agents in parallel as children of its trace, then claude-sonnet-4-6 weaves dialogue with hostMapping persisted on episode
+- [x] `convex/agents/researcher.ts` — claude-haiku-4-5, ranks connector candidates by weighted topics; per-feed try-catch; rank-failure fallback to first
+- [x] `convex/agents/curator.ts` — `doCuratorBootstrap` (substack profile scrape + cold-start fallback + claude clustering) + `doCuratorFeedback` (topicFlags → userTopics weight deltas)
+- [x] `convex/agents/manager.ts` — `onboard` + `generateEpisode` actions; full pipeline researcher → composer → audio with try-catch around audio render
 
 ### user-facing flows
 
-- [ ] `app/app/onboarding/page.tsx` — substack handle input + topic buttons (curator bootstrap; falls back to "skip and use defaults")
-- [ ] `app/app/curate/page.tsx` — growing curator UI (post-episode feedback, weighted category buttons, "more like this" / "less of this")
-- [ ] `app/app/hosts/page.tsx` — list hosts (global + user-owned) + "add new host" form (name + voice_id + ideology prompt + slot)
-- [ ] `app/app/runs/page.tsx` — observability, list runs, click to expand step-by-step trace tree (uses generationRuns.parentRunId)
-- [ ] update `app/app/page.tsx` (generate screen) — pick 1 host per slot from hosts table, not hardcoded HostCard
+- [x] `app/app/onboarding/page.tsx` — substack handle input + topic buttons (curator bootstrap; falls back to "skip and use defaults")
+- [x] `app/app/hosts/page.tsx` — list hosts (global + user-owned) + "add new host" form (name + voice_id + ideology prompt + slot)
+- [x] `app/app/runs/page.tsx` — observability, list runs, click to expand step-by-step trace tree (uses generationRuns.parentRunId)
+- [x] update `app/app/page.tsx` (generate screen) — pick 1 host per slot from hosts table; primary CTA calls manager.generateEpisode; legacy paste-URL preserved under details/disclosure
+- [ ] `app/app/curate/page.tsx` — growing curator UI (post-episode feedback). Backend `doCuratorFeedback` exists; UI is the missing piece
 
 ### observability (rubric L3)
 
-- [ ] every agent call wraps with `logStep` → writes generationRuns row
-- [ ] /app/runs renders trace tree from `parentRunId` chain
-- [ ] cost + latency per step visible in run detail
-- [ ] error rows include error message preview
+- [x] every agent call wraps with `withTrace` → writes generationRuns row with parentRunId chain
+- [x] /app/runs renders trace tree from `parentRunId` chain
+- [x] cost + latency per step visible in run detail
+- [x] error rows include error message preview (status badge + collapsible error block)
 
 ### evals (rubric L2 → L3)
 
