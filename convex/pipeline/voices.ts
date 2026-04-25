@@ -2,7 +2,7 @@
 // Mirrors poc/04-voice-config.md. Bump VOICE_CONFIG_VERSION whenever a
 // voice id, model, or settings value changes.
 
-export const VOICE_CONFIG_VERSION = "v1-2026-04-25";
+export const VOICE_CONFIG_VERSION = "v2-2026-04-25";
 
 export type Speaker = "KALAM" | "ANCHOR";
 
@@ -19,9 +19,12 @@ export type VoiceConfig = {
   settings: VoiceSettings;
 };
 
-// Voice IDs default to the locked poc 4 values but can be overridden via
-// convex env (handy when rotating voices without a redeploy).
-const DEFAULT_KALAM_ID = "oBcjxOGlStndvN2pZJ6V";
+// Voice IDs. Kept in sync with `convex/hosts.ts#DEFAULT_VOICE_BY_SLOT` —
+// renderAudio currently uses these constants instead of the host record's
+// voiceId; consolidating to a single source (the host record) is a follow-up.
+// Override via convex env (`ELEVENLABS_VOICE_KALAM`, `ELEVENLABS_VOICE_ANCHOR`)
+// when rotating voices without a redeploy.
+const DEFAULT_KALAM_ID = "01DQSLgg3WJX3GZ2K4fl";
 const DEFAULT_ANCHOR_ID = "8WqHCYyrnUqoK70Px5EJ";
 
 export function getVoices(): Record<Speaker, VoiceConfig> {

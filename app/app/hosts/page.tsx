@@ -26,8 +26,6 @@ export default function HostsPage() {
   const [name, setName] = useState("");
   const [persona, setPersona] = useState("");
   const [ideologyPrompt, setIdeologyPrompt] = useState("");
-  const [voiceId, setVoiceId] = useState("");
-  const [voiceModel, setVoiceModel] = useState("eleven_turbo_v2_5");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdName, setCreatedName] = useState<string | null>(null);
@@ -77,10 +75,8 @@ export default function HostsPage() {
       await createHost({
         slot,
         name: name.trim(),
-        // Empty voiceId → backend uses the slot's default voice. Phase B will
-        // fill this with a YouTube → ElevenLabs IVC clone.
-        voiceId: voiceId.trim() || undefined,
-        voiceModel: voiceModel.trim() || undefined,
+        // Voice always uses the slot's default. Phase B will let users pick or
+        // clone a custom voice from a YouTube clip.
         ideologyPrompt: ideologyPrompt.trim(),
         persona: persona.trim(),
       });
@@ -88,7 +84,6 @@ export default function HostsPage() {
       setName("");
       setPersona("");
       setIdeologyPrompt("");
-      setVoiceId("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "create failed");
     } finally {
@@ -278,27 +273,9 @@ export default function HostsPage() {
               />
             </Field>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Voice id (optional)">
-                <input
-                  value={voiceId}
-                  onChange={(e) => setVoiceId(e.target.value)}
-                  placeholder="leave blank for default"
-                  className="w-full bg-[#141414] border border-[#D4AF37]/30 text-[#F2F0E4] px-3 py-2 focus:border-[#D4AF37] focus:outline-none font-mono text-xs"
-                />
-              </Field>
-              <Field label="Voice model">
-                <input
-                  value={voiceModel}
-                  onChange={(e) => setVoiceModel(e.target.value)}
-                  className="w-full bg-[#141414] border border-[#D4AF37]/30 text-[#F2F0E4] px-3 py-2 focus:border-[#D4AF37] focus:outline-none font-mono text-xs"
-                />
-              </Field>
-            </div>
-            <p className="text-[11px] text-[#F2F0E4]/55 -mt-2">
-              No ElevenLabs account? Skip the voice id — your new host will use
-              the default {SLOT_LABEL[slot]} voice. Phase B will let you clone a
-              custom voice from a YouTube clip.
+            <p className="text-[11px] text-[#F2F0E4]/55">
+              Voice will use the default {SLOT_LABEL[slot]} voice. Phase B will
+              let you clone a custom voice from a YouTube clip.
             </p>
 
             {error && (
@@ -321,38 +298,6 @@ export default function HostsPage() {
             </button>
           </form>
 
-          <details className="mt-6 border border-[#D4AF37]/20 bg-[#141414] p-3">
-            <summary className="cursor-pointer font-display uppercase tracking-[0.3em] text-[10px] text-[#D4AF37]/80">
-              WHERE DO I GET A VOICE ID? ▾
-            </summary>
-            <ol className="mt-3 list-decimal pl-5 space-y-2 text-xs text-[#F2F0E4]/75">
-              <li>
-                Open{" "}
-                <a
-                  href="https://elevenlabs.io/app/voice-library"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline text-[#D4AF37]"
-                >
-                  ElevenLabs voice library
-                </a>{" "}
-                and pick a voice.
-              </li>
-              <li>Click the voice → &quot;Add to Library&quot; → copy its voice id.</li>
-              <li>
-                Or use{" "}
-                <a
-                  href="https://elevenlabs.io/app/voices?action=ivc"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline text-[#D4AF37]"
-                >
-                  Instant Voice Clone
-                </a>{" "}
-                — upload 1–5 min of audio, get a voice id in seconds.
-              </li>
-            </ol>
-          </details>
         </div>
       </div>
     </section>
@@ -378,8 +323,6 @@ function HostCard({
     slot: "KALAM" | "ANCHOR";
     name: string;
     persona: string;
-    voiceId: string;
-    voiceModel?: string;
     ownerTokenId?: string;
   };
 }) {
@@ -394,9 +337,6 @@ function HostCard({
         </span>
       </div>
       <p className="mt-2 text-sm text-[#F2F0E4]/75">{host.persona}</p>
-      <p className="mt-3 font-mono text-[10px] text-[#F2F0E4]/40 truncate">
-        voice {host.voiceId}{host.voiceModel ? ` · ${host.voiceModel}` : ""}
-      </p>
     </li>
   );
 }

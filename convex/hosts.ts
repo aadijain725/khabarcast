@@ -20,6 +20,50 @@ const VOICE_PARAMS = v.object({
   use_speaker_boost: v.optional(v.boolean()),
 });
 
+// Default voice presets per slot. Used as the fallback when a user creates
+// a host without specifying a voiceId, AND as the voice for the global seed
+// hosts (Kalam-inspired KALAM, Skeptical Anchor ANCHOR).
+//
+// KALAM = a deep, calm narrator voice from the ElevenLabs library
+// (`01DQSLgg3WJX3GZ2K4fl`). User picked this 2026-04-25 to replace the
+// previous APJ Abdul Kalam clone. ANCHOR = the existing high-energy news
+// anchor voice. Update here to roll a new default to all NEW hosts; existing
+// host records keep their stored voiceId until manually migrated.
+const DEFAULT_VOICE_BY_SLOT: Record<
+  "KALAM" | "ANCHOR",
+  {
+    voiceId: string;
+    voiceModel: string;
+    voiceParams: {
+      stability: number;
+      similarity_boost: number;
+      style: number;
+      use_speaker_boost?: boolean;
+    };
+  }
+> = {
+  KALAM: {
+    voiceId: "01DQSLgg3WJX3GZ2K4fl",
+    voiceModel: "eleven_turbo_v2_5",
+    voiceParams: {
+      stability: 0.55,
+      similarity_boost: 0.8,
+      style: 0.2,
+      use_speaker_boost: true,
+    },
+  },
+  ANCHOR: {
+    voiceId: "8WqHCYyrnUqoK70Px5EJ",
+    voiceModel: "eleven_v3",
+    voiceParams: {
+      stability: 0.35,
+      similarity_boost: 0.75,
+      style: 0.55,
+      use_speaker_boost: true,
+    },
+  },
+};
+
 // Global + user-owned hosts visible to the signed-in user, ordered newest-first.
 export const listVisible = query({
   args: {},
@@ -92,21 +136,10 @@ export const create = mutation({
     let voiceParams = args.voiceParams;
 
     if (!voiceId) {
-      // Look up the slot's default global host for voice fallback.
-      const globals = await ctx.db
-        .query("hosts")
-        .withIndex("by_owner", (q) => q.eq("ownerTokenId", undefined))
-        .collect();
-      const fallback = globals.find((h) => h.slot === args.slot);
-      if (!fallback) {
-        throw new Error(
-          `no global host seeded for slot ${args.slot} — voice fallback unavailable. seed the defaults or pass a voiceId.`,
-        );
-      }
-      voiceId = fallback.voiceId;
-      // Inherit fallback model/params only when caller didn't override.
-      voiceModel = voiceModel ?? fallback.voiceModel;
-      voiceParams = voiceParams ?? fallback.voiceParams;
+      const preset = DEFAULT_VOICE_BY_SLOT[args.slot];
+      voiceId = preset.voiceId;
+      voiceModel = voiceModel ?? preset.voiceModel;
+      voiceParams = voiceParams ?? preset.voiceParams;
     }
 
     return await ctx.db.insert("hosts", {
@@ -144,14 +177,9 @@ export const seedDefaultsInternal = internalMutation({
         ownerTokenId: undefined,
         slot: "KALAM",
         name: "Kalam-inspired",
-        voiceId: "oBcjxOGlStndvN2pZJ6V",
-        voiceModel: "eleven_turbo_v2_5",
-        voiceParams: {
-          stability: 0.55,
-          similarity_boost: 0.8,
-          style: 0.2,
-          use_speaker_boost: true,
-        },
+        voiceId: DEFAULT_VOICE_BY_SLOT.KALAM.voiceId,
+        voiceModel: DEFAULT_VOICE_BY_SLOT.KALAM.voiceModel,
+        voiceParams: DEFAULT_VOICE_BY_SLOT.KALAM.voiceParams,
         persona:
           "Calm, wise, optimistic, systems-minded. Inspired by APJ Abdul Kalam — persona-inspired, not impersonation.",
         ideologyPrompt:
@@ -166,14 +194,9 @@ export const seedDefaultsInternal = internalMutation({
         ownerTokenId: undefined,
         slot: "ANCHOR",
         name: "Skeptical Anchor",
-        voiceId: "8WqHCYyrnUqoK70Px5EJ",
-        voiceModel: "eleven_v3",
-        voiceParams: {
-          stability: 0.35,
-          similarity_boost: 0.75,
-          style: 0.55,
-          use_speaker_boost: true,
-        },
+        voiceId: DEFAULT_VOICE_BY_SLOT.ANCHOR.voiceId,
+        voiceModel: DEFAULT_VOICE_BY_SLOT.ANCHOR.voiceModel,
+        voiceParams: DEFAULT_VOICE_BY_SLOT.ANCHOR.voiceParams,
         persona:
           "Sharp, urgent, skeptical, media-savvy. Inspired by a high-energy Indian news anchor style — persona-inspired, not impersonation.",
         ideologyPrompt:
@@ -184,5 +207,38 @@ export const seedDefaultsInternal = internalMutation({
     }
 
     return { created };
+  },
+});
+
+// Re-apply DEFAULT_VOICE_BY_SLOT to every GLOBAL host (ownerTokenId = undefined),
+// regardless of slot. Idempotent and safe to run on every deploy. Use this to
+// roll out a new default voice without dropping/recreating the seed records.
+// User-owned hosts are NEVER touched.
+export const resyncGlobalVoicesInternal = internalMutation({
+  args: {},
+  handler: async (
+    ctx,
+  ): Promise<{ updated: Array<{ name: string; slot: string }> }> => {
+    const globals = await ctx.db
+      .query("hosts")
+      .withIndex("by_owner", (q) => q.eq("ownerTokenId", undefined))
+      .collect();
+
+    const updated: Array<{ name: string; slot: string }> = [];
+    for (const h of globals) {
+      const preset = DEFAULT_VOICE_BY_SLOT[h.slot];
+      const same =
+        h.voiceId === preset.voiceId &&
+        h.voiceModel === preset.voiceModel &&
+        JSON.stringify(h.voiceParams) === JSON.stringify(preset.voiceParams);
+      if (same) continue;
+      await ctx.db.patch(h._id, {
+        voiceId: preset.voiceId,
+        voiceModel: preset.voiceModel,
+        voiceParams: preset.voiceParams,
+      });
+      updated.push({ name: h.name, slot: h.slot });
+    }
+    return { updated };
   },
 });
