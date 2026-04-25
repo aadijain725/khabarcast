@@ -1,5 +1,10 @@
 import { v } from "convex/values";
-import { internalMutation, mutation, query } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 
 const kindValidator = v.union(
@@ -70,6 +75,22 @@ export const listMine = query({
       )
       .order("desc")
       .take(100);
+  },
+});
+
+// phase 4 (MAAS): curator-feedback agent reads flags for a single episode to
+// translate them into userTopics weight deltas. Owner check happens here so the
+// action layer can stay thin.
+export const listForEpisodeInternal = internalQuery({
+  args: { episodeId: v.id("episodes"), userTokenId: v.string() },
+  handler: async (ctx, args): Promise<Array<Doc<"topicFlags">>> => {
+    const episode = await ctx.db.get(args.episodeId);
+    if (!episode) return [];
+    if (episode.userTokenId !== args.userTokenId) return [];
+    return await ctx.db
+      .query("topicFlags")
+      .withIndex("by_episode", (q) => q.eq("episodeId", args.episodeId))
+      .collect();
   },
 });
 
