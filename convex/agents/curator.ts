@@ -12,7 +12,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { v } from "convex/values";
-import { ActionCtx, internalAction } from "../_generated/server";
+import { action, ActionCtx, internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { Doc, Id } from "../_generated/dataModel";
 import { withTrace, estimateClaudeCost } from "./lib/runLog";
@@ -352,6 +352,19 @@ export async function doCuratorFeedback(
       .reweightedTopics,
   };
 }
+
+// Public auth-wrapped action for /app/curate "improve from this episode" button.
+export const feedback = action({
+  args: { episodeId: v.id("episodes") },
+  handler: async (ctx, args): Promise<CuratorFeedbackResult> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("not authenticated");
+    return await doCuratorFeedback(ctx, {
+      userTokenId: identity.tokenIdentifier,
+      episodeId: args.episodeId,
+    });
+  },
+});
 
 // CLI-invokable smoke variants. Skip auth — caller passes userTokenId.
 export const bootstrapInternal = internalAction({

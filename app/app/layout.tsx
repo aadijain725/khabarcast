@@ -30,6 +30,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               HISTORY
             </Link>
             <Link
+              href="/app/curate"
+              className="hidden md:inline font-display uppercase tracking-[0.3em] text-xs text-[#F2F0E4]/70 hover:text-[#D4AF37] transition-colors"
+            >
+              CURATE
+            </Link>
+            <Link
               href="/app/hosts"
               className="hidden md:inline font-display uppercase tracking-[0.3em] text-xs text-[#F2F0E4]/70 hover:text-[#D4AF37] transition-colors"
             >

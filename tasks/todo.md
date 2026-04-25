@@ -161,7 +161,7 @@ MANAGER (claude sonnet, convex action)
 - [x] `app/app/hosts/page.tsx` — list hosts (global + user-owned) + "add new host" form (name + voice_id + ideology prompt + slot)
 - [x] `app/app/runs/page.tsx` — observability, list runs, click to expand step-by-step trace tree (uses generationRuns.parentRunId)
 - [x] update `app/app/page.tsx` (generate screen) — pick 1 host per slot from hosts table; primary CTA calls manager.generateEpisode; legacy paste-URL preserved under details/disclosure
-- [ ] `app/app/curate/page.tsx` — growing curator UI (post-episode feedback). Backend `doCuratorFeedback` exists; UI is the missing piece
+- [x] `app/app/curate/page.tsx` — growing curator UI (post-episode feedback dropdown + run button + per-topic +/- weight nudge + remove buttons + feeds list). Auth-wrapped `agents.curator.feedback` action added.
 
 ### observability (rubric L3)
 
@@ -172,10 +172,9 @@ MANAGER (claude sonnet, convex action)
 
 ### evals (rubric L2 → L3)
 
-- [ ] `evals/golden.json` — 5 hand-picked feed posts + expected topic coverage notes
-- [ ] `evals/runEval.ts` — runs full pipeline against golden set, emits scorecard
-- [ ] `evals/judgePrompt.ts` — claude-as-judge rubric (factual fidelity, persona consistency, debate dynamic, length adherence)
-- [ ] one manual scorecard run with screenshot saved for submission
+- [x] `convex/evals.ts` — golden set (3 substack feeds with expected themes) + claude-as-judge rubric (factual fidelity, persona consistency, debate dynamic, length adherence, hook quality) + scorecard internalAction
+- [x] one manual scorecard run saved at `evals/scorecard-20260425-1340.json`. Result: 19/25 on noahpinion "Why shoplifting is bad" — factual 5, persona 4, debate 4, length 2, hook 4. Length is the actionable weak spot for next composer prompt iteration.
+- [ ] expand golden set to 5 articles + retry the full multi-item run (currently the 3-item run hits transient anthropic fetch failures partway through; works at limit=1)
 
 ### memory (rubric L3-L4)
 

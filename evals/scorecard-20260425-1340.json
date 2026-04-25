@@ -1,0 +1,33 @@
+{
+  "judgeModel": "claude-sonnet-4-6",
+  "judgePromptVersion": "judge-v1-2026-04-25",
+  "runAt": "2026-04-25T08:09:30.416Z",
+  "totalLatencyMs": 57045,
+  "itemCount": 1,
+  "scoredCount": 1,
+  "averages": {
+    "factualFidelity": 5,
+    "personaConsistency": 4,
+    "debateDynamic": 4,
+    "lengthAdherence": 2,
+    "hookQuality": 4,
+    "total": 19
+  },
+  "items": [
+    {
+      "feedUrl": "https://www.noahpinion.blog/feed",
+      "sourceTitle": "Why shoplifting is bad",
+      "episodeId": "k57eq9vf9jrqagqcw1b15jnbqh85ha8t",
+      "latencyMs": 57044,
+      "score": {
+        "factualFidelity": 5,
+        "personaConsistency": 4,
+        "debateDynamic": 4,
+        "lengthAdherence": 2,
+        "hookQuality": 4,
+        "total": 19,
+        "notes": "Factual grounding is tight throughout and persona differentiation is mostly strong, though KALAM occasionally sounds more like a sharp analyst than a calm systems-thinker. The dialogue runs significantly over 800 words (closer to 1,100+), which is the clearest weakness; turn length also creeps beyond the 1-3 sentence target in several places."
+      }
+    }
+  ]
+}
