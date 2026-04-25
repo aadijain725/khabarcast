@@ -1,5 +1,10 @@
 # Lessons
 
+### 2026-04-25 — Vercel build must run `convex deploy` or prod backend ships empty
+**Trigger**: standing up a new Convex deployment for prod (separate from dev) and pushing the Next.js app to Vercel
+**Do**: add `vercel.json` with `"buildCommand": "npx convex deploy --cmd 'npm run build'"` and set `CONVEX_DEPLOY_KEY` (production-scoped) in Vercel prod env. First deploy still needs a manual `CONVEX_DEPLOY_KEY=... npx convex deploy` to land functions before the next git push, since the build wiring only triggers on push.
+**Why**: burned a session on `Could not find public function for 'hosts:listVisible'` etc. — Vercel was running plain `next build`, so prod Convex (`outgoing-anteater-462`) had schema/functions = none. Frontend connected and crashed on first query. The CLAUDE.md shipping flow ("push → vercel handles rest") only works for the backend if you wire convex deploy into the build.
+
 ### 2026-04-23 — Don't default to "fewer vendors" on UX-facing flows
 **Trigger**: user asks for "simple [user-facing thing]" with multiple implementation paths
 **Do**: frame the tradeoff as UX-simple vs setup-simple. Ask which axis matters. Don't pre-pick setup-simple just because it has fewer moving parts.
