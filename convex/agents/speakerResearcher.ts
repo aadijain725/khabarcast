@@ -8,6 +8,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { ActionCtx, action, internalAction } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 import { withTrace, estimateClaudeCost } from "./lib/runLog";
@@ -190,12 +191,12 @@ export const run = action({
     slot: v.union(v.literal("KALAM"), v.literal("ANCHOR")),
   },
   handler: async (ctx, args): Promise<SpeakerResearchResult> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
     return await doResearch(ctx, {
       personName: args.personName,
       slot: args.slot,
-      userTokenId: identity.tokenIdentifier,
+      userTokenId: userId,
     });
   },
 });

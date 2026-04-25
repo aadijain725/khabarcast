@@ -1,4 +1,6 @@
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { QueryCtx, MutationCtx } from "./_generated/server";
 import {
   internalMutation,
   internalQuery,
@@ -14,17 +16,17 @@ const kindValidator = v.union(
   v.literal("off-topic"),
 );
 
-// Helper: verify caller owns the episode being flagged. Returns userTokenId.
+// Helper: verify caller owns the episode being flagged. Returns the user id.
 async function verifyEpisodeOwner(
-  ctx: { auth: { getUserIdentity(): Promise<{ tokenIdentifier: string } | null> }; db: { get: (id: Id<"episodes">) => Promise<Doc<"episodes"> | null> } },
+  ctx: QueryCtx | MutationCtx,
   episodeId: Id<"episodes">,
-): Promise<string> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new Error("not authenticated");
+): Promise<Id<"users">> {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) throw new Error("not authenticated");
   const episode = await ctx.db.get(episodeId);
   if (!episode) throw new Error("episode not found");
-  if (episode.userTokenId !== identity.tokenIdentifier) throw new Error("not owner");
-  return identity.tokenIdentifier;
+  if (episode.userTokenId !== userId) throw new Error("not owner");
+  return userId;
 }
 
 export const createFlag = mutation({
@@ -50,11 +52,11 @@ export const createFlag = mutation({
 export const listForEpisode = query({
   args: { episodeId: v.id("episodes") },
   handler: async (ctx, args): Promise<Array<Doc<"topicFlags">>> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
     const episode = await ctx.db.get(args.episodeId);
     if (!episode) return [];
-    if (episode.userTokenId !== identity.tokenIdentifier) return [];
+    if (episode.userTokenId !== userId) return [];
     return await ctx.db
       .query("topicFlags")
       .withIndex("by_episode", (q) => q.eq("episodeId", args.episodeId))
@@ -66,13 +68,11 @@ export const listForEpisode = query({
 export const listMine = query({
   args: {},
   handler: async (ctx): Promise<Array<Doc<"topicFlags">>> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
     return await ctx.db
       .query("topicFlags")
-      .withIndex("by_userToken", (q) =>
-        q.eq("userTokenId", identity.tokenIdentifier),
-      )
+      .withIndex("by_userToken", (q) => q.eq("userTokenId", userId))
       .order("desc")
       .take(100);
   },

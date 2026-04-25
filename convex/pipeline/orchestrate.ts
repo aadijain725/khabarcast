@@ -1,6 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { action, internalAction, ActionCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 import { doFetch } from "./fetchSource";
@@ -77,12 +78,12 @@ export const run = action({
     itemIndex: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<OrchestrateResult> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
     return await doOrchestrate(ctx, {
       feedUrl: args.feedUrl,
       itemIndex: args.itemIndex,
-      userTokenId: identity.tokenIdentifier,
+      userTokenId: userId,
     });
   },
 });

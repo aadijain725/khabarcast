@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { internalMutation, internalQuery, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { dialogueValidator } from "./schema";
@@ -6,11 +7,11 @@ import { dialogueValidator } from "./schema";
 export const get = query({
   args: { episodeId: v.id("episodes") },
   handler: async (ctx, args): Promise<Doc<"episodes"> | null> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
     const row = await ctx.db.get(args.episodeId);
     if (!row) return null;
-    if (row.userTokenId !== identity.tokenIdentifier) return null;
+    if (row.userTokenId !== userId) return null;
     return row;
   },
 });
@@ -21,11 +22,11 @@ export const getWithAudioUrl = query({
     ctx,
     args,
   ): Promise<(Doc<"episodes"> & { audioUrl: string | null }) | null> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
     const row = await ctx.db.get(args.episodeId);
     if (!row) return null;
-    if (row.userTokenId !== identity.tokenIdentifier) return null;
+    if (row.userTokenId !== userId) return null;
     const audioUrl = row.audioFileId
       ? await ctx.storage.getUrl(row.audioFileId)
       : null;
@@ -36,13 +37,11 @@ export const getWithAudioUrl = query({
 export const listMine = query({
   args: {},
   handler: async (ctx): Promise<Array<Doc<"episodes">>> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
     return await ctx.db
       .query("episodes")
-      .withIndex("by_userToken", (q) =>
-        q.eq("userTokenId", identity.tokenIdentifier),
-      )
+      .withIndex("by_userToken", (q) => q.eq("userTokenId", userId))
       .order("desc")
       .take(50);
   },

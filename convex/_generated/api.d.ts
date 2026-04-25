@@ -26,6 +26,7 @@ import type * as evals from "../evals.js";
 import type * as generationRuns from "../generationRuns.js";
 import type * as hosts from "../hosts.js";
 import type * as http from "../http.js";
+import type * as migrations from "../migrations.js";
 import type * as pipeline_fetchSource from "../pipeline/fetchSource.js";
 import type * as pipeline_generateScript from "../pipeline/generateScript.js";
 import type * as pipeline_orchestrate from "../pipeline/orchestrate.js";
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   generationRuns: typeof generationRuns;
   hosts: typeof hosts;
   http: typeof http;
+  migrations: typeof migrations;
   "pipeline/fetchSource": typeof pipeline_fetchSource;
   "pipeline/generateScript": typeof pipeline_generateScript;
   "pipeline/orchestrate": typeof pipeline_orchestrate;

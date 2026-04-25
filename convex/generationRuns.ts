@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { internalMutation, internalQuery, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
@@ -127,12 +128,12 @@ export const markErrorTraceInternal = internalMutation({
 export const listRoots = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
     const limit = args.limit ?? 50;
     const rows = await ctx.db
       .query("generationRuns")
-      .withIndex("by_userToken", (q) => q.eq("userTokenId", identity.tokenIdentifier))
+      .withIndex("by_userToken", (q) => q.eq("userTokenId", userId))
       .order("desc")
       .take(limit * 4);
     return rows.filter((r) => r.parentRunId === undefined).slice(0, limit);
@@ -144,14 +145,14 @@ export const listRoots = query({
 export const listChildren = query({
   args: { parentRunId: v.id("generationRuns") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
     const rows = await ctx.db
       .query("generationRuns")
       .withIndex("by_parent", (q) => q.eq("parentRunId", args.parentRunId))
       .order("asc")
       .collect();
-    return rows.filter((r) => r.userTokenId === identity.tokenIdentifier);
+    return rows.filter((r) => r.userTokenId === userId);
   },
 });
 
@@ -170,10 +171,10 @@ export const listByTokenInternal = internalQuery({
 export const getOne = query({
   args: { runId: v.id("generationRuns") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
     const row = await ctx.db.get(args.runId);
-    if (!row || row.userTokenId !== identity.tokenIdentifier) return null;
+    if (!row || row.userTokenId !== userId) return null;
     return row;
   },
 });

@@ -16,6 +16,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { action, ActionCtx, internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { Doc, Id } from "../_generated/dataModel";
@@ -502,10 +503,10 @@ export async function doCuratorFeedback(
 export const fromTopics = action({
   args: { topics: v.array(v.string()) },
   handler: async (ctx, args): Promise<CuratorFromTopicsResult> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
     return await doCuratorFromTopics(ctx, {
-      userTokenId: identity.tokenIdentifier,
+      userTokenId: userId,
       topics: args.topics,
     });
   },
@@ -514,10 +515,10 @@ export const fromTopics = action({
 export const feedback = action({
   args: { episodeId: v.id("episodes") },
   handler: async (ctx, args): Promise<CuratorFeedbackResult> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
     return await doCuratorFeedback(ctx, {
-      userTokenId: identity.tokenIdentifier,
+      userTokenId: userId,
       episodeId: args.episodeId,
     });
   },

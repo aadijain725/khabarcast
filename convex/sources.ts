@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { internalMutation, internalQuery, mutation } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 
@@ -13,8 +14,8 @@ export const create = mutation({
     url: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Id<"sources">> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
 
     const title = args.title.trim();
     const rawText = args.rawText.trim();
@@ -22,7 +23,7 @@ export const create = mutation({
     if (!rawText) throw new Error("rawText required");
 
     return await ctx.db.insert("sources", {
-      userTokenId: identity.tokenIdentifier,
+      userTokenId: userId,
       title,
       rawText,
       url: args.url,

@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import {
   internalMutation,
   internalQuery,
@@ -23,11 +24,11 @@ const DEFAULT_WEIGHT = 1;
 export const listMine = query({
   args: {},
   handler: async (ctx): Promise<Doc<"userTopics">[]> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
     return await ctx.db
       .query("userTopics")
-      .withIndex("by_userToken", (q) => q.eq("userTokenId", identity.tokenIdentifier))
+      .withIndex("by_userToken", (q) => q.eq("userTokenId", userId))
       .collect();
   },
 });
@@ -52,15 +53,15 @@ export const upsert = mutation({
     source: SOURCE,
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
     const topic = args.topic.trim();
     if (!topic) throw new Error("topic required");
     const delta = args.delta ?? 1;
     const existing = await ctx.db
       .query("userTopics")
       .withIndex("by_userToken_topic", (q) =>
-        q.eq("userTokenId", identity.tokenIdentifier).eq("topic", topic),
+        q.eq("userTokenId", userId).eq("topic", topic),
       )
       .unique();
     if (existing) {
@@ -72,7 +73,7 @@ export const upsert = mutation({
       return existing._id;
     }
     return await ctx.db.insert("userTopics", {
-      userTokenId: identity.tokenIdentifier,
+      userTokenId: userId,
       topic,
       weight: DEFAULT_WEIGHT + delta - 1,
       source: args.source,
@@ -119,11 +120,11 @@ export const upsertInternal = internalMutation({
 export const remove = mutation({
   args: { topicId: v.id("userTopics") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
     const row = await ctx.db.get(args.topicId);
     if (!row) return;
-    if (row.userTokenId !== identity.tokenIdentifier) throw new Error("not owner");
+    if (row.userTokenId !== userId) throw new Error("not owner");
     await ctx.db.delete(args.topicId);
   },
 });

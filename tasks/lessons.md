@@ -1,5 +1,11 @@
 # Lessons
 
+### 2026-04-25 — `identity.tokenIdentifier` from `@convex-dev/auth` includes a per-session id, **don't use it for ownership**
+**Trigger**: any backend (query/mutation/action) under `@convex-dev/auth` where you key rows by the signed-in user
+**Do**: import `getAuthUserId` from `@convex-dev/auth/server` and use its return (`Id<"users">`) as the ownership column. Never store or compare against `identity.tokenIdentifier`.
+**Why**: @convex-dev/auth builds the JWT with `subject = "${userId}|${sessionId}"`. Convex then exposes `identity.tokenIdentifier = "${issuer}|${subject}"` = `"${issuer}|${userId}|${sessionId}"`. Every login mints a new session → new `tokenIdentifier` → all rows the user wrote on a previous login are unreachable. Looks exactly like "data not persisting." Burned a session on this — fixed by swapping every `identity.tokenIdentifier` callsite to `getAuthUserId(ctx)` and running a one-shot migration that rewrites legacy values (`split("|")[1]`).
+
+
 ### 2026-04-25 — Vercel build must run `convex deploy` or prod backend ships empty
 **Trigger**: standing up a new Convex deployment for prod (separate from dev) and pushing the Next.js app to Vercel
 **Do**: add `vercel.json` with `"buildCommand": "npx convex deploy --cmd 'npm run build'"` and set `CONVEX_DEPLOY_KEY` (production-scoped) in Vercel prod env. First deploy still needs a manual `CONVEX_DEPLOY_KEY=... npx convex deploy` to land functions before the next git push, since the build wiring only triggers on push.

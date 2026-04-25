@@ -2,6 +2,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { action, internalAction, ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
@@ -234,11 +235,11 @@ export const run = action({
     ctx,
     args,
   ): Promise<{ runId: Id<"generationRuns">; episodeId: Id<"episodes"> }> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
     return await doGenerate(ctx, {
       sourceId: args.sourceId,
-      userTokenId: identity.tokenIdentifier,
+      userTokenId: userId,
     });
   },
 });

@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import {
   internalMutation,
   internalQuery,
@@ -68,15 +69,15 @@ const DEFAULT_VOICE_BY_SLOT: Record<
 export const listVisible = query({
   args: {},
   handler: async (ctx): Promise<Doc<"hosts">[]> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
     const globals = await ctx.db
       .query("hosts")
       .withIndex("by_owner", (q) => q.eq("ownerTokenId", undefined))
       .collect();
     const owned = await ctx.db
       .query("hosts")
-      .withIndex("by_owner", (q) => q.eq("ownerTokenId", identity.tokenIdentifier))
+      .withIndex("by_owner", (q) => q.eq("ownerTokenId", userId))
       .collect();
     return [...globals, ...owned].sort((a, b) => b._creationTime - a._creationTime);
   },
@@ -128,8 +129,8 @@ export const create = mutation({
     persona: v.string(),
   },
   handler: async (ctx, args): Promise<Id<"hosts">> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
 
     let voiceId = args.voiceId?.trim();
     let voiceModel = args.voiceModel;
@@ -143,7 +144,7 @@ export const create = mutation({
     }
 
     return await ctx.db.insert("hosts", {
-      ownerTokenId: identity.tokenIdentifier,
+      ownerTokenId: userId,
       slot: args.slot,
       name: args.name,
       voiceId,

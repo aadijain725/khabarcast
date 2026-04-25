@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import {
   internalMutation,
   internalQuery,
@@ -20,11 +21,11 @@ const KIND = v.union(
 export const listMine = query({
   args: {},
   handler: async (ctx): Promise<Doc<"userFeeds">[]> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
     return await ctx.db
       .query("userFeeds")
-      .withIndex("by_userToken", (q) => q.eq("userTokenId", identity.tokenIdentifier))
+      .withIndex("by_userToken", (q) => q.eq("userTokenId", userId))
       .order("desc")
       .collect();
   },
@@ -48,12 +49,12 @@ export const add = mutation({
     title: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Id<"userFeeds">> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
     const handle = args.handle.trim();
     if (!handle) throw new Error("handle required");
     return await ctx.db.insert("userFeeds", {
-      userTokenId: identity.tokenIdentifier,
+      userTokenId: userId,
       kind: args.kind,
       handle,
       title: args.title,
@@ -92,11 +93,11 @@ export const addInternal = internalMutation({
 export const remove = mutation({
   args: { feedId: v.id("userFeeds") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
     const row = await ctx.db.get(args.feedId);
     if (!row) return;
-    if (row.userTokenId !== identity.tokenIdentifier) throw new Error("not owner");
+    if (row.userTokenId !== userId) throw new Error("not owner");
     await ctx.db.delete(args.feedId);
   },
 });

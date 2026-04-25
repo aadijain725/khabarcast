@@ -15,6 +15,7 @@
 // the user's intent. tokensIn/Out/cost stay at 0 for the manager row.
 
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { action, internalAction, ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
@@ -302,10 +303,10 @@ export const onboard = action({
     feedLines: v.array(v.string()),
   },
   handler: async (ctx, args): Promise<CuratorBootstrapResult> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
     return await doOnboard(ctx, {
-      userTokenId: identity.tokenIdentifier,
+      userTokenId: userId,
       feedLines: args.feedLines,
     });
   },
@@ -316,10 +317,10 @@ export const suggestFromTopics = action({
     topics: v.array(v.string()),
   },
   handler: async (ctx, args): Promise<CuratorFromTopicsResult> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
     return await doSuggestFromTopics(ctx, {
-      userTokenId: identity.tokenIdentifier,
+      userTokenId: userId,
       topics: args.topics,
     });
   },
@@ -331,10 +332,10 @@ export const generateEpisode = action({
     anchorHostId: v.id("hosts"),
   },
   handler: async (ctx, args): Promise<GenerateEpisodeResult> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
     return await doGenerateEpisode(ctx, {
-      userTokenId: identity.tokenIdentifier,
+      userTokenId: userId,
       kalamHostId: args.kalamHostId,
       anchorHostId: args.anchorHostId,
     });
@@ -348,10 +349,10 @@ export const regenerateEpisode = action({
     anchorHostId: v.id("hosts"),
   },
   handler: async (ctx, args): Promise<GenerateEpisodeResult> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not authenticated");
     return await doRegenerateEpisode(ctx, {
-      userTokenId: identity.tokenIdentifier,
+      userTokenId: userId,
       fromEpisodeId: args.fromEpisodeId,
       kalamHostId: args.kalamHostId,
       anchorHostId: args.anchorHostId,
