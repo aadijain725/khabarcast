@@ -13,7 +13,7 @@ type ValidatedFeed = {
   feedUrl: string;
 };
 
-type RejectedLine = { line: string; reason: string };
+type RejectedLine = { line: string; reason: string; suggestion?: string };
 
 // Hand-curated topic chips. Mirrors `convex/connectors/topicCatalog.ts`.
 // Keep in sync if you edit either side. Server is the source of truth — these
@@ -183,10 +183,9 @@ export default function OnboardingPage() {
       </h1>
 
       <p className="mt-6 max-w-2xl text-base md:text-lg text-[#F2F0E4]/75">
-        Paste the newsletters you actually read, OR pick the topics you care
-        about and we&apos;ll suggest popular newsletters in those areas. The
-        curator agent validates each feed and clusters topics from your
-        actual reads.
+        Paste your Substack subscriptions, one per line — handles, URLs, even
+        messy paste all work. We&apos;ll figure out the rest. Or pick topics
+        and we&apos;ll suggest popular newsletters in those areas.
       </p>
 
       {(existingFeeds?.length ?? 0) > 0 && (
@@ -237,14 +236,14 @@ export default function OnboardingPage() {
           <textarea
             value={feedLinesText}
             onChange={(e) => setFeedLinesText(e.target.value)}
-            placeholder={`noahpinion\n@astralcodexten\nhttps://www.slowboring.com\nhttps://example.com/feed.xml`}
+            placeholder={`noahpinion\n@astralcodexten\nslowboring.substack.com`}
             rows={6}
             className="w-full bg-[#141414] border border-[#D4AF37]/30 text-[#F2F0E4] px-3 py-3 focus:border-[#D4AF37] focus:outline-none font-mono text-sm"
           />
           <p className="text-xs text-[#F2F0E4]/55">
-            substack handle (<span className="font-mono">noahpinion</span>),{" "}
-            <span className="font-mono">@handle</span>, full publication URL,
-            or any RSS URL all work.
+            Substack handle (<span className="font-mono">noahpinion</span>),{" "}
+            <span className="font-mono">@handle</span>, or any substack URL.
+            We&apos;ll extract the handle and validate.
           </p>
           <button
             type="submit"
@@ -305,15 +304,40 @@ export default function OnboardingPage() {
                 {rejected.length} LINE{rejected.length === 1 ? "" : "S"} REJECTED
               </p>
               <ul className="space-y-1.5">
-                {rejected.map((r, i) => (
-                  <li
-                    key={`${r.line}-${i}`}
-                    className="text-sm border border-red-500/20 bg-red-500/5 px-3 py-2"
-                  >
-                    <span className="font-mono text-red-400">{r.line}</span>
-                    <span className="text-[#F2F0E4]/65"> — {r.reason}</span>
-                  </li>
-                ))}
+                {rejected.map((r, i) => {
+                  const showSuggestion =
+                    r.suggestion &&
+                    r.suggestion.toLowerCase() !== r.line.trim().toLowerCase();
+                  return (
+                    <li
+                      key={`${r.line}-${i}`}
+                      className="text-sm border border-red-500/20 bg-red-500/5 px-3 py-2"
+                    >
+                      <span className="font-mono text-red-400">{r.line}</span>
+                      <span className="text-[#F2F0E4]/65"> — {r.reason}</span>
+                      {showSuggestion && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFeedLinesText((prev) =>
+                              prev
+                                .split(/\r?\n/)
+                                .map((l) =>
+                                  l.trim() === r.line.trim()
+                                    ? r.suggestion!
+                                    : l,
+                                )
+                                .join("\n"),
+                            );
+                          }}
+                          className="ml-3 font-display uppercase tracking-[0.2em] text-[10px] text-[#D4AF37] hover:text-[#F2F0E4]"
+                        >
+                          TRY &apos;{r.suggestion}&apos; →
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
