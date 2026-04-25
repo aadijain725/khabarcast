@@ -98,6 +98,105 @@ partial delivery landed with poc 1 merge. remaining items listed below.
 - [ ] verify on live vercel url
 - [ ] set prod envs: `vercel env add` + `npx convex env set --prod`
 
+## phase 4 — MAAS pivot (target: L3 across rubric)
+
+pivot from straight-line pipeline → manager + specialist agents. existing helpers (`doFetch`, `doGenerate`, `doRender`) become tools the agents call. keeps phase 0-2 work intact.
+
+### agent org
+
+```
+MANAGER (claude sonnet, convex action)
+  routes intent → calls specialists → logs every step to generationRuns
+
+  ├── CURATOR (continuous, grows with feedback)
+  │    bootstrap: substack handle scrape (substack.com/@handle/reads) +
+  │                feedly cloud recs fallback by category → topic buttons
+  │    growing: post-episode feedback (uses topicFlags) reweights user_topics
+  │    persists: user_topics, user_feeds (connector pattern)
+  │
+  ├── RESEARCHER (per episode)
+  │    reads user_feeds + user_topics → connector.fetchLatest() →
+  │    claude ranks posts by topic-match → returns top 2-3 articles
+  │
+  ├── SCRIPTWRITER (sub-team)
+  │    ├── IDEOLOGY AGENTS (dynamic: 1 per slot, parameterized by host record)
+  │    │    reads host.ideologyPrompt + host.persona → returns stance,
+  │    │    key arguments, tone for that host on that bundle
+  │    │    spawned by manager based on user host selection (L4 dynamic delegation)
+  │    └── COMPOSER (existing generateScript, refactored)
+  │         takes stances + facts → emits dialogue JSON (KALAM/ANCHOR slots)
+  │
+  └── VOICE (existing renderAudio, unchanged)
+```
+
+### schema additions (additive, zero-downtime)
+
+- [ ] `convex/schema.ts`: add `hosts` table { ownerTokenId?, slot ("KALAM"|"ANCHOR"), name, voiceId, voiceModel, voiceParams, ideologyPrompt, persona, createdAt }
+- [ ] add `userTopics` { userTokenId, topic, weight, source ("onboarding"|"feedback"|"trending"|"manual"), lastReinforcedAt }
+- [ ] add `userFeeds` { userTokenId, kind ("substack"|"rss"|"feedly"), handle, title?, addedAt }
+- [ ] extend `episodes` with optional `hostMapping` { KALAM: Id<hosts>, ANCHOR: Id<hosts> }
+- [ ] extend `generationRuns` with optional trace fields: step, agentName, parentRunId, inputPreview, outputPreview, tokensIn, tokensOut, costUsd, latencyMs
+- [ ] seed two global hosts on first deploy: KALAM (existing voice + ideology) + ANCHOR (existing voice + ideology)
+
+### connectors (newsletter ingest abstraction)
+
+- [ ] `convex/connectors/types.ts` — `Connector` interface: `fetchLatest(handle, n) → RawPost[]`, `parsePost(raw) → CleanArticle`
+- [ ] `connectors/substack.ts` — handle.substack.com/feed (refactor of existing fetchSource)
+- [ ] `connectors/genericRss.ts` — paste-any-feed escape hatch
+- [ ] `connectors/feedly.ts` — recs-only (no full body), keyed by category
+
+### agents
+
+- [ ] `convex/agents/lib/runLog.ts` — `logStep(ctx, {parentRunId, step, agentName, input, output, tokens, cost, latency})` → writes generationRuns row
+- [ ] `convex/agents/manager.ts` — intent router; orchestrates curator OR full episode pipeline; spawns ideology agents based on host selection; returns root runId
+- [ ] `convex/agents/curator.ts` — substack-profile scrape + feedly fallback + claude topic clustering + feedback-loop reweighting
+- [ ] `convex/agents/researcher.ts` — picks top articles by user_topics weight; emits chosen_articles[]
+- [ ] `convex/agents/ideologyAgent.ts` — generic, parameterized by host record; returns stance + arguments + tone
+- [ ] `convex/agents/composer.ts` — refactor of generateScript; takes ideology stances (not raw facts) as primary input
+
+### user-facing flows
+
+- [ ] `app/app/onboarding/page.tsx` — substack handle input + topic buttons (curator bootstrap; falls back to "skip and use defaults")
+- [ ] `app/app/curate/page.tsx` — growing curator UI (post-episode feedback, weighted category buttons, "more like this" / "less of this")
+- [ ] `app/app/hosts/page.tsx` — list hosts (global + user-owned) + "add new host" form (name + voice_id + ideology prompt + slot)
+- [ ] `app/app/runs/page.tsx` — observability, list runs, click to expand step-by-step trace tree (uses generationRuns.parentRunId)
+- [ ] update `app/app/page.tsx` (generate screen) — pick 1 host per slot from hosts table, not hardcoded HostCard
+
+### observability (rubric L3)
+
+- [ ] every agent call wraps with `logStep` → writes generationRuns row
+- [ ] /app/runs renders trace tree from `parentRunId` chain
+- [ ] cost + latency per step visible in run detail
+- [ ] error rows include error message preview
+
+### evals (rubric L2 → L3)
+
+- [ ] `evals/golden.json` — 5 hand-picked feed posts + expected topic coverage notes
+- [ ] `evals/runEval.ts` — runs full pipeline against golden set, emits scorecard
+- [ ] `evals/judgePrompt.ts` — claude-as-judge rubric (factual fidelity, persona consistency, debate dynamic, length adherence)
+- [ ] one manual scorecard run with screenshot saved for submission
+
+### memory (rubric L3-L4)
+
+- [ ] curator reads past episodes from user history before generating new topic buttons
+- [ ] researcher boosts un-covered user_topics, decays repeated ones
+- [ ] hosts can have memory of past episodes ("as i said last week...") — STRETCH
+
+### stretch (only if all L3 above is green)
+
+- [ ] `app/api/feed/[token]/route.ts` — per-user RSS for apple/overcast/pocket casts
+- [ ] ElevenLabs IVC upload UI (drag-drop audio → voice_id) → unlocks management UI L5
+- [ ] cross-user trending topics view (opt-in)
+
+### phase 4 ship gate
+
+- [ ] types pass, lint pass, `npm run dev` smoke
+- [ ] golden eval run + screenshot
+- [ ] generationRuns trace tree screenshot
+- [ ] hosts page screenshot
+- [ ] commit + push → vercel auto-deploy
+- [ ] `npx convex deploy` for backend
+
 ## review
 
 ### poc 1 + poc 2 + partial phase 1 landing (2026-04-24)

@@ -126,6 +126,44 @@ function diagnoseNoItems(raw: string): string {
   return `Could not extract feed items. Preview: ${head}`;
 }
 
+// phase 4 (MAAS): connector-friendly parser. Returns up to `n` parsed feed
+// items WITHOUT writing to the DB — researcher persists only the chosen ones.
+// Reuses the same regex extractor + entity decoder used by doFetch.
+export type FeedItemParsed = {
+  title: string;
+  link: string;
+  rawText: string;
+  wordCount: number;
+};
+
+export async function fetchFeedItems(
+  feedUrl: string,
+  n: number = 5,
+): Promise<FeedItemParsed[]> {
+  const raw = await fetchRaw(feedUrl);
+  const items: FeedItemParsed[] = [];
+  for (let i = 0; i < n; i++) {
+    const item = extractFirstItem(raw, i);
+    if (!item) break;
+    const text = cleanArticle(item.html);
+    const wc = text.split(/\s+/).filter(Boolean).length;
+    if (wc < 100) continue;
+    items.push({
+      title: item.title || "untitled",
+      link: item.link || feedUrl,
+      rawText: text,
+      wordCount: wc,
+    });
+  }
+  return items;
+}
+
+// phase 4 (MAAS): raw HTML fetch shared with curator for substack profile
+// scraping. Does no parsing — returns the body as a string.
+export async function fetchRawPublic(url: string): Promise<string> {
+  return await fetchRaw(url);
+}
+
 export async function doFetch(
   ctx: ActionCtx,
   params: { feedUrl: string; itemIndex?: number; userTokenId: string },

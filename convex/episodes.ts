@@ -100,6 +100,14 @@ export const insertFromRunInternal = internalMutation({
     sourceTitle: v.string(),
     dialogue: dialogueValidator,
     promptVersion: v.string(),
+    // phase 4 (MAAS): which host record fills each slot. Optional so phase-1
+    // generateScript callers (which don't know about hosts table) still work.
+    hostMapping: v.optional(
+      v.object({
+        KALAM: v.id("hosts"),
+        ANCHOR: v.id("hosts"),
+      }),
+    ),
   },
   handler: async (ctx, args): Promise<Id<"episodes">> => {
     return await ctx.db.insert("episodes", {
@@ -110,6 +118,7 @@ export const insertFromRunInternal = internalMutation({
       sourceTitle: args.sourceTitle,
       dialogue: args.dialogue,
       promptVersion: args.promptVersion,
+      hostMapping: args.hostMapping,
     });
   },
 });
