@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { action, internalAction, ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
+import { withTrace } from "../agents/lib/runLog";
 import {
   getVoices,
   VOICE_CONFIG_VERSION,
@@ -84,60 +85,103 @@ async function mapWithConcurrency<T, R>(
 
 export async function doRender(
   ctx: ActionCtx,
-  params: { episodeId: Id<"episodes">; userTokenId: string },
-): Promise<{ audioFileId: Id<"_storage">; audioDurationSec: number }> {
-  const apiKey = process.env.ELEVENLABS_API_KEY;
-  if (!apiKey) throw new Error("ELEVENLABS_API_KEY not set on convex deployment");
-
+  params: {
+    episodeId: Id<"episodes">;
+    userTokenId: string;
+    parentRunId?: Id<"generationRuns">;
+  },
+): Promise<{
+  audioFileId: Id<"_storage">;
+  audioDurationSec: number;
+  runId: Id<"generationRuns">;
+}> {
   const episode = await ctx.runQuery(internal.episodes.getInternal, {
     episodeId: params.episodeId,
   });
   if (!episode) throw new Error("episode not found");
   if (episode.userTokenId !== params.userTokenId) throw new Error("not owner");
 
-  await ctx.runMutation(internal.episodes.setAudioRenderingInternal, {
-    episodeId: params.episodeId,
-    voiceConfigVersion: VOICE_CONFIG_VERSION,
-  });
+  const turnCount = episode.dialogue.topics.reduce(
+    (n, t) => n + t.subtopics.reduce((m, s) => m + s.turns.length, 0),
+    0,
+  );
 
-  try {
-    const turns = flattenTurns(episode.dialogue);
-    const buffers = await mapWithConcurrency(
-      turns,
-      TTS_CONCURRENCY,
-      async (turn) => await synthTurn(apiKey, turn),
-    );
+  const { runId, output } = await withTrace(
+    ctx,
+    {
+      userTokenId: params.userTokenId,
+      sourceId: episode.sourceId,
+      parentRunId: params.parentRunId,
+      step: "voice",
+      agentName: "voice:elevenlabs",
+      model: "elevenlabs",
+      promptVersion: VOICE_CONFIG_VERSION,
+      input: {
+        episodeId: params.episodeId,
+        turnCount,
+        voiceConfigVersion: VOICE_CONFIG_VERSION,
+      },
+    },
+    async () => {
+      // mark rendering up-front, then run the actual TTS inside a try/catch
+      // so any failure (incl. missing API key) lands in setAudioErrorInternal.
+      await ctx.runMutation(internal.episodes.setAudioRenderingInternal, {
+        episodeId: params.episodeId,
+        voiceConfigVersion: VOICE_CONFIG_VERSION,
+      });
 
-    // Concatenate into a single mp3. Known caveat (poc 4 note): two ID3 headers
-    // in the output — lenient decoders accept it. ffmpeg-static cleanup is a
-    // follow-up when it matters.
-    const totalBytes = buffers.reduce((n, b) => n + b.byteLength, 0);
-    const combined = new Uint8Array(totalBytes);
-    let offset = 0;
-    for (const b of buffers) {
-      combined.set(new Uint8Array(b), offset);
-      offset += b.byteLength;
-    }
+      try {
+        const apiKey = process.env.ELEVENLABS_API_KEY;
+        if (!apiKey)
+          throw new Error("ELEVENLABS_API_KEY not set on convex deployment");
 
-    const blob = new Blob([combined], { type: "audio/mpeg" });
-    const audioFileId: Id<"_storage"> = await ctx.storage.store(blob);
-    const audioDurationSec = totalBytes / MP3_BYTES_PER_SECOND;
+        const turns = flattenTurns(episode.dialogue);
+        const buffers = await mapWithConcurrency(
+          turns,
+          TTS_CONCURRENCY,
+          async (turn) => await synthTurn(apiKey, turn),
+        );
 
-    await ctx.runMutation(internal.episodes.setAudioReadyInternal, {
-      episodeId: params.episodeId,
-      audioFileId,
-      audioDurationSec,
-    });
+        // Concatenate into a single mp3. Known caveat (poc 4 note): two ID3
+        // headers in the output — lenient decoders accept it.
+        const totalBytes = buffers.reduce((n, b) => n + b.byteLength, 0);
+        const combined = new Uint8Array(totalBytes);
+        let offset = 0;
+        for (const b of buffers) {
+          combined.set(new Uint8Array(b), offset);
+          offset += b.byteLength;
+        }
 
-    return { audioFileId, audioDurationSec };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    await ctx.runMutation(internal.episodes.setAudioErrorInternal, {
-      episodeId: params.episodeId,
-      audioError: message,
-    });
-    throw err;
-  }
+        const blob = new Blob([combined], { type: "audio/mpeg" });
+        const audioFileId: Id<"_storage"> = await ctx.storage.store(blob);
+        const audioDurationSec = totalBytes / MP3_BYTES_PER_SECOND;
+
+        await ctx.runMutation(internal.episodes.setAudioReadyInternal, {
+          episodeId: params.episodeId,
+          audioFileId,
+          audioDurationSec,
+        });
+
+        return {
+          output: { audioFileId, audioDurationSec },
+          episodeId: params.episodeId,
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        await ctx.runMutation(internal.episodes.setAudioErrorInternal, {
+          episodeId: params.episodeId,
+          audioError: message,
+        });
+        throw err;
+      }
+    },
+  );
+
+  const inner = output.output as {
+    audioFileId: Id<"_storage">;
+    audioDurationSec: number;
+  };
+  return { ...inner, runId };
 }
 
 export const run = action({
@@ -145,7 +189,11 @@ export const run = action({
   handler: async (
     ctx,
     args,
-  ): Promise<{ audioFileId: Id<"_storage">; audioDurationSec: number }> => {
+  ): Promise<{
+    audioFileId: Id<"_storage">;
+    audioDurationSec: number;
+    runId: Id<"generationRuns">;
+  }> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("not authenticated");
     return await doRender(ctx, {
@@ -163,7 +211,11 @@ export const runInternal = internalAction({
   handler: async (
     ctx,
     args,
-  ): Promise<{ audioFileId: Id<"_storage">; audioDurationSec: number }> => {
+  ): Promise<{
+    audioFileId: Id<"_storage">;
+    audioDurationSec: number;
+    runId: Id<"generationRuns">;
+  }> => {
     return await doRender(ctx, args);
   },
 });

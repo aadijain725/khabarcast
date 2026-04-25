@@ -1,5 +1,37 @@
 # khabarcast v1 — todo
 
+## phase 5 — prod stabilisation + audio retry (2026-04-25)
+
+prod episode `k579wzs…` shipped with transcript but no audio. cause: `ELEVENLABS_API_KEY` missing on prod convex → `doRender` threw before `setAudioErrorInternal` could mark the episode. also: render not traced in `generationRuns`. user wants per-episode re-render + per-episode regenerate-with-new-hosts.
+
+- [x] set `ELEVENLABS_API_KEY` on prod convex (same as dev for now; rotate after)
+- [x] wrap `doRender` in `withTrace` (`step: "voice"`, `agentName: "voice:elevenlabs"`) — accepts optional `parentRunId`
+- [x] manager: pass `parentRunId` into `doRender` so trace nests under the manager run
+- [x] new action `agents/manager:regenerateEpisode` — args: `fromEpisodeId, kalamHostId, anchorHostId`. composes from same source with new hosts → renders → returns new `episodeId` (old episode preserved in history)
+- [x] episode detail page: "RE-RENDER AUDIO" + "REGENERATE WITH NEW HOSTS" controls
+- [x] history page: inline "↻ RETRY AUDIO" on rows where `audioStatus !== "ready"`
+- [x] types pass, commit, push, smoke re-render on the broken episode (audio: 254s, runId `k975w88x…`)
+
+### review
+
+**what changed**
+- `convex/pipeline/renderAudio.ts` — `doRender` now wraps the actual TTS in `withTrace` with `step: "voice"`. Optional `parentRunId` arg lets manager nest the voice trace under the parent manager run. Standalone re-renders create a root voice run. Also moved the `ELEVENLABS_API_KEY` check inside the inner try/catch so a missing key marks the episode as `audioStatus="error"` instead of silently leaving it with no audio fields (the bug that hit `k579wzs…`).
+- `convex/agents/manager.ts` — added `doRegenerateEpisode` + public `regenerateEpisode` action. Reuses old episode's sourceId, composes with the new host pair, renders, returns new episodeId. Old episode preserved in history.
+- `app/app/episodes/[id]/page.tsx` — added two controls below the player: "↻ RE-RENDER AUDIO" (idempotent, fires `pipeline/renderAudio:run`) and "REGENERATE WITH NEW HOSTS" (expander with KALAM/ANCHOR dropdowns from `hosts:listVisible`, fires `agents/manager:regenerateEpisode`, redirects to the new episode on success).
+- `app/app/history/page.tsx` — added inline `↻ RETRY AUDIO` button on rows where `audioStatus !== "ready"` and `!== "rendering"`. Restructured row from a single big `<Link>` to a `<li>` with the title-link and the metadata strip side-by-side, so the button can sit inside the row without nesting `<button>` in `<a>`.
+
+**decisions**
+- Re-render mutates the same episode (overwrites `audioFileId`); regenerate creates a new episode (preserves the old transcript + audio in history). Matches user's framing of "per episode AND regenerate entirely".
+- Voice trace `model` field = `"elevenlabs"` (string), not the per-host voice model. Kept it simple — voice model varies per host but trace cost/aggregation is by provider.
+- Manager run stays `ok` even when render fails — generation succeeded (transcript valid), audio is a separate concern. The voice child trace records the failure.
+
+**why audio was missing on `k579wzs…`**
+- `ELEVENLABS_API_KEY` was unset on prod convex. `doRender` threw the missing-key error BEFORE `setAudioRenderingInternal` ran, so no `audioStatus` ever got set. From the UI's perspective: no audio fields at all = "AUDIO NOT RENDERED" with no retry path. Fixed by (a) setting the key, (b) moving the check inside the try/catch so future failures land in `setAudioErrorInternal`.
+
+**next**
+- rotate `ELEVENLABS_API_KEY` (chat-exposed multiple times now).
+- preview-branch deploys still un-supported (no preview deploy key on Vercel).
+
 plan: `~/.claude/plans/gentle-painting-bumblebee.md`
 
 prior phase (auth: google oauth + magic link, landing, waitlist) — **done**. see git log: `62f1b3b` + `aaf4f04`.

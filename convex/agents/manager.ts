@@ -16,6 +16,7 @@
 
 import { v } from "convex/values";
 import { action, internalAction, ActionCtx } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
 import { withTrace } from "./lib/runLog";
 import {
@@ -159,6 +160,7 @@ export async function doGenerateEpisode(
         const render = await doRender(ctx, {
           episodeId: compose.episodeId,
           userTokenId: params.userTokenId,
+          parentRunId,
         });
         audioFileId = render.audioFileId;
         audioDurationSec = render.audioDurationSec;
@@ -172,6 +174,99 @@ export async function doGenerateEpisode(
       return {
         output: {
           sourceId: research.sourceId,
+          episodeId: compose.episodeId,
+          audioFileId,
+          audioDurationSec,
+        },
+        tokensIn: 0,
+        tokensOut: 0,
+        costUsd: 0,
+        episodeId: compose.episodeId,
+      };
+    },
+  );
+
+  const inner = output.output as {
+    sourceId: Id<"sources">;
+    episodeId: Id<"episodes">;
+    audioFileId?: Id<"_storage">;
+    audioDurationSec?: number;
+  };
+
+  return {
+    rootRunId: managerRunId,
+    sourceId: inner.sourceId,
+    episodeId: inner.episodeId,
+    audioFileId: inner.audioFileId,
+    audioDurationSec: inner.audioDurationSec,
+  };
+}
+
+// Regenerate from an existing episode's source with a NEW host pair. Produces
+// a NEW episode row (old one is preserved in history). Composer pulls fresh
+// ideologies for whichever hosts the user picked.
+export async function doRegenerateEpisode(
+  ctx: ActionCtx,
+  params: {
+    userTokenId: string;
+    fromEpisodeId: Id<"episodes">;
+    kalamHostId: Id<"hosts">;
+    anchorHostId: Id<"hosts">;
+  },
+): Promise<GenerateEpisodeResult> {
+  const old = await ctx.runQuery(internal.episodes.getInternal, {
+    episodeId: params.fromEpisodeId,
+  });
+  if (!old) throw new Error("source episode not found");
+  if (old.userTokenId !== params.userTokenId) throw new Error("not owner");
+  const sourceId = old.sourceId;
+
+  const { runId: managerRunId, output } = await withTrace(
+    ctx,
+    {
+      userTokenId: params.userTokenId,
+      sourceId,
+      step: "manager",
+      agentName: "manager:regenerateEpisode",
+      model: MODEL,
+      promptVersion: PROMPT_VERSION,
+      input: {
+        fromEpisodeId: params.fromEpisodeId,
+        kalamHostId: params.kalamHostId,
+        anchorHostId: params.anchorHostId,
+      },
+    },
+    async (parentRunId) => {
+      const compose = await doCompose(ctx, {
+        sourceId,
+        userTokenId: params.userTokenId,
+        hostMapping: {
+          KALAM: params.kalamHostId,
+          ANCHOR: params.anchorHostId,
+        },
+        parentRunId,
+      });
+
+      let audioFileId: Id<"_storage"> | undefined;
+      let audioDurationSec: number | undefined;
+      try {
+        const render = await doRender(ctx, {
+          episodeId: compose.episodeId,
+          userTokenId: params.userTokenId,
+          parentRunId,
+        });
+        audioFileId = render.audioFileId;
+        audioDurationSec = render.audioDurationSec;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(
+          `manager.regenerateEpisode: audio render failed for episode ${compose.episodeId}: ${message}.`,
+        );
+      }
+
+      return {
+        output: {
+          sourceId,
           episodeId: compose.episodeId,
           audioFileId,
           audioDurationSec,
@@ -240,6 +335,24 @@ export const generateEpisode = action({
     if (!identity) throw new Error("not authenticated");
     return await doGenerateEpisode(ctx, {
       userTokenId: identity.tokenIdentifier,
+      kalamHostId: args.kalamHostId,
+      anchorHostId: args.anchorHostId,
+    });
+  },
+});
+
+export const regenerateEpisode = action({
+  args: {
+    fromEpisodeId: v.id("episodes"),
+    kalamHostId: v.id("hosts"),
+    anchorHostId: v.id("hosts"),
+  },
+  handler: async (ctx, args): Promise<GenerateEpisodeResult> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("not authenticated");
+    return await doRegenerateEpisode(ctx, {
+      userTokenId: identity.tokenIdentifier,
+      fromEpisodeId: args.fromEpisodeId,
       kalamHostId: args.kalamHostId,
       anchorHostId: args.anchorHostId,
     });

@@ -1,8 +1,10 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import Link from "next/link";
+import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 function formatWhen(ts: number): string {
   const d = new Date(ts);
@@ -26,6 +28,38 @@ function audioLabel(
   if (status === "rendering") return "RENDERING…";
   if (status === "error") return "ERROR";
   return "NO AUDIO";
+}
+
+function RetryAudioButton({ episodeId }: { episodeId: Id<"episodes"> }) {
+  const reRender = useAction(api.pipeline.renderAudio.run);
+  const [state, setState] = useState<
+    { kind: "idle" } | { kind: "pending" } | { kind: "error" }
+  >({ kind: "idle" });
+  return (
+    <button
+      type="button"
+      disabled={state.kind === "pending"}
+      onClick={async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setState({ kind: "pending" });
+        try {
+          await reRender({ episodeId });
+          setState({ kind: "idle" });
+        } catch {
+          setState({ kind: "error" });
+        }
+      }}
+      className="font-display uppercase tracking-[0.25em] text-[10px] px-3 py-1 border border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      aria-label="retry audio render"
+    >
+      {state.kind === "pending"
+        ? "RETRYING…"
+        : state.kind === "error"
+          ? "↻ FAILED · RETRY"
+          : "↻ RETRY AUDIO"}
+    </button>
+  );
 }
 
 export default function HistoryPage() {
@@ -74,31 +108,40 @@ export default function HistoryPage() {
         {episodes && episodes.length > 0 && (
           <ul className="divide-y divide-[#D4AF37]/20 border-t border-b border-[#D4AF37]/20">
             {episodes.map((ep) => (
-              <li key={ep._id}>
+              <li
+                key={ep._id}
+                className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6 py-6 md:py-8"
+              >
                 <Link
                   href={`/app/episodes/${ep._id}`}
-                  className="group flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 md:gap-6 py-6 md:py-8 transition-colors hover:bg-[#141414]/60"
+                  className="group min-w-0 flex-1"
                 >
-                  <div className="min-w-0">
-                    <h2 className="font-display uppercase tracking-[0.08em] text-xl md:text-3xl text-[#F2F0E4] group-hover:text-[#D4AF37] transition-colors break-words">
-                      {ep.episodeTitle}
-                    </h2>
-                    <p className="mt-2 text-sm text-[#F2F0E4]/60">
-                      FROM · {ep.sourceTitle}
-                    </p>
-                  </div>
-                  <div className="shrink-0 flex items-center gap-4 font-display uppercase tracking-[0.3em] text-[10px] md:text-xs">
-                    <span className="text-[#F2F0E4]/50">
-                      {formatWhen(ep._creationTime)}
-                    </span>
-                    <span className="text-[#D4AF37]">
-                      {audioLabel(ep.audioStatus, ep.audioDurationSec)}
-                    </span>
-                    <span className="text-[#D4AF37] transition-transform group-hover:translate-x-1">
-                      →
-                    </span>
-                  </div>
+                  <h2 className="font-display uppercase tracking-[0.08em] text-xl md:text-3xl text-[#F2F0E4] group-hover:text-[#D4AF37] transition-colors break-words">
+                    {ep.episodeTitle}
+                  </h2>
+                  <p className="mt-2 text-sm text-[#F2F0E4]/60">
+                    FROM · {ep.sourceTitle}
+                  </p>
                 </Link>
+                <div className="shrink-0 flex items-center gap-4 font-display uppercase tracking-[0.3em] text-[10px] md:text-xs">
+                  <span className="text-[#F2F0E4]/50">
+                    {formatWhen(ep._creationTime)}
+                  </span>
+                  <span className="text-[#D4AF37]">
+                    {audioLabel(ep.audioStatus, ep.audioDurationSec)}
+                  </span>
+                  {ep.audioStatus !== "ready" &&
+                    ep.audioStatus !== "rendering" && (
+                      <RetryAudioButton episodeId={ep._id} />
+                    )}
+                  <Link
+                    href={`/app/episodes/${ep._id}`}
+                    className="text-[#D4AF37] hover:translate-x-1 transition-transform"
+                    aria-label="open episode"
+                  >
+                    →
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>
